@@ -98,6 +98,16 @@ body{background:#f5f6fa;}
   background:var(--accent);
 }
 
+/* Entradas y salidas visuales */
+.kardex-item-entrada{
+  background: linear-gradient(90deg, rgba(220,252,231,0.9), rgba(220,252,231,0.9));
+  border-left: 4px solid #16a34a; /* verde más fuerte */
+}
+.kardex-item-salida{
+  background: linear-gradient(90deg, rgba(255,241,242,0.9), rgba(255,241,242,0.9));
+  border-left: 4px solid #ef4444; /* rojo */
+}
+
 /* Responsive */
 @media (max-width: 992px){
   .layout{grid-template-columns:0 1fr}
@@ -187,7 +197,8 @@ body{background:#f5f6fa;}
     </div>
 
     <!-- Panel principal -->
-    <div class="kardex-panel p-3">
+  <div id="kardexAlertWrapper" class="mb-3"></div>
+  <div class="kardex-panel p-3">
       <div class="w-100 h-100 d-flex flex-column align-items-center justify-content-start pt-2">
         <div class="text-muted small kardex-center-title">
           <i class="bi bi-c-circle me-1"></i> Kardex
@@ -195,7 +206,26 @@ body{background:#f5f6fa;}
 
         <!-- Aquí dentro puedes renderizar tu tabla/lista de movimientos -->
         <div class="flex-grow-1 w-100 mt-3">
-          <!-- contenido dinámico -->
+          <!-- Lista de movimientos -->
+          <div id="kardexLista" class="list-group">
+            {% if entradas %}
+              {% for e in entradas %}
+                <div class="list-group-item d-flex justify-content-between align-items-start {% if e.tipo == 'entrada' %}kardex-item-entrada{% elif e.tipo == 'salida' %}kardex-item-salida{% endif %}">
+                  <div>
+                    <div class="fw-bold">{{ e.get_tipo_display }} — {{ e.producto.nombre }}</div>
+                    <div class="small text-muted">{{ e.motivo }} • {{ e.fecha }}</div>
+                  </div>
+                  <div class="text-end">
+                    <div>Cantidad: <strong>{{ e.cantidad }}</strong></div>
+                    <div>Stock: <strong>{{ e.stock_after }}</strong></div>
+                    <div>Stock mínimo: <strong>{{ e.producto.stock_minimo }}</strong></div>
+                  </div>
+                </div>
+              {% endfor %}
+            {% else %}
+              <div class="small text-muted">No hay movimientos aún.</div>
+            {% endif %}
+          </div>
         </div>
       </div>
     </div>
@@ -214,13 +244,14 @@ body{background:#f5f6fa;}
         <div class="mb-3">
           <div class="input-group">
             <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
-            <input type="search" class="form-control form-control-lg" placeholder="...buscar">
+            <input id="entradaBuscar" type="search" class="form-control form-control-lg" placeholder="...buscar">
           </div>
+          <div id="entradaResultados" class="list-group mt-2" style="max-height:200px;overflow:auto;"></div>
         </div>
 
         <!-- Stock actual (pill verde) -->
         <div class="mb-3">
-          <div class="p-3 rounded-3 border border-success-subtle bg-success-subtle text-success-emphasis">
+          <div id="entradaStock" class="p-3 rounded-3 border border-success-subtle bg-success-subtle text-success-emphasis">
             <strong>stock actual:</strong> —
           </div>
         </div>
@@ -230,7 +261,8 @@ body{background:#f5f6fa;}
           <label class="form-label small fw-semibold">
             <i class="bi bi-box-seam me-1"></i> Cantidad
           </label>
-          <input type="number" class="form-control border-0 border-bottom border-2" placeholder="0">
+          <input id="entradaCantidad" type="number" class="form-control border-0 border-bottom border-2" placeholder="0" min="1">
+          <input id="entradaProductoId" type="hidden" value="">
         </div>
 
         <!-- Motivo (estilo subrayado) -->
@@ -238,10 +270,10 @@ body{background:#f5f6fa;}
           <label class="form-label small fw-semibold">
             <i class="bi bi-card-text me-1"></i> Motivo
           </label>
-          <input type="text" class="form-control border-0 border-bottom border-2" placeholder="Opcional">
+          <input id="entradaMotivo" type="text" class="form-control border-0 border-bottom border-2" placeholder="Opcional">
         </div>
 
-        <button class="btn btn-primary btn-lg px-4 rounded-4 w-auto">
+        <button id="entradaGuardar" class="btn btn-primary btn-lg px-4 rounded-4 w-auto">
           <i class="bi bi-save me-2"></i> Guardar
         </button>
       </div>
@@ -262,13 +294,14 @@ body{background:#f5f6fa;}
         <div class="mb-3">
           <div class="input-group">
             <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
-            <input type="search" class="form-control form-control-lg" placeholder="...buscar">
+            <input id="salidaBuscar" type="search" class="form-control form-control-lg" placeholder="...buscar">
           </div>
+          <div id="salidaResultados" class="list-group mt-2" style="max-height:200px;overflow:auto;"></div>
         </div>
 
         <!-- Stock actual (pill rojo) -->
         <div class="mb-3">
-          <div class="p-3 rounded-3 border border-danger-subtle bg-danger-subtle text-danger-emphasis">
+          <div id="salidaStock" class="p-3 rounded-3 border border-danger-subtle bg-danger-subtle text-danger-emphasis">
             <strong>stock actual:</strong> —
           </div>
         </div>
@@ -278,7 +311,8 @@ body{background:#f5f6fa;}
           <label class="form-label small fw-semibold">
             <i class="bi bi-box-seam me-1"></i> Cantidad
           </label>
-          <input type="number" min="1" class="form-control border-0 border-bottom border-2" placeholder="0">
+          <input id="salidaCantidad" type="number" min="1" class="form-control border-0 border-bottom border-2" placeholder="0">
+          <input id="salidaProductoId" type="hidden" value="">
         </div>
 
         <!-- Motivo (subrayado) -->
@@ -286,10 +320,10 @@ body{background:#f5f6fa;}
           <label class="form-label small fw-semibold">
             <i class="bi bi-card-text me-1"></i> Motivo
           </label>
-          <input type="text" class="form-control border-0 border-bottom border-2" placeholder="Venta, merma, ajuste…">
+          <input id="salidaMotivo" type="text" class="form-control border-0 border-bottom border-2" placeholder="Venta, merma, ajuste…">
         </div>
 
-        <button class="btn btn-primary btn-lg px-4 rounded-4">
+        <button id="salidaGuardar" class="btn btn-primary btn-lg px-4 rounded-4">
           <i class="bi bi-save me-2"></i> Guardar
         </button>
       </div>
@@ -301,5 +335,186 @@ body{background:#f5f6fa;}
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+// Alerts
+function showAlert(message, variant='danger', timeout=7000){
+  const wrapper = document.getElementById('kardexAlertWrapper');
+  if(!wrapper) return;
+  const alert = document.createElement('div');
+  alert.className = `alert alert-${variant} alert-dismissible fade show`;
+  alert.role = 'alert';
+  alert.innerHTML = `${message} <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>`;
+  wrapper.appendChild(alert);
+  if(timeout>0){
+    setTimeout(()=>{ try{ bootstrap.Alert.getOrCreateInstance(alert).close(); }catch(e){} }, timeout);
+  }
+}
+
+// Helper para leer csrftoken
+function getCookie(name) {
+  const v = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+  return v ? v.pop() : '';
+}
+
+// Render simple results list into a container; attaches click handler to select product
+function renderResultados(container, productos, targetStockId, targetProductoId, searchInputId) {
+  container.innerHTML = '';
+  if (!productos || productos.length === 0) {
+    container.innerHTML = '<div class="small text-muted px-2">No se encontraron productos.</div>';
+    return;
+  }
+  productos.forEach(p => {
+    const a = document.createElement('button');
+    a.type = 'button';
+    a.className = 'list-group-item list-group-item-action';
+    a.innerHTML = `<div class="d-flex justify-content-between"><div>${p.nombre} <small class="text-muted">(${p.codigo_interno || ''})</small></div><div class="text-end"><small>stock: <strong>${p.cantidad}</strong></small></div></div>`;
+    a.addEventListener('click', () => {
+      // set selected product id and show stock
+      const hidden = document.getElementById(targetProductoId);
+      hidden.value = p.id;
+      hidden.dataset.stock = p.cantidad; // store current stock for client-side validation
+      document.getElementById(targetStockId).innerHTML = `<strong>stock actual:</strong> ${p.cantidad}`;
+      // set the search input to the selected product's name (if provided)
+      if (searchInputId) {
+        const si = document.getElementById(searchInputId);
+        if (si) si.value = p.nombre;
+      }
+
+      // set max on cantidad input when selecting for salida
+      if (targetProductoId === 'salidaProductoId'){
+        const qty = document.getElementById('salidaCantidad');
+        if (qty){
+          qty.max = p.cantidad;
+          // ensure current value isn't above max
+          if (Number(qty.value) > Number(p.cantidad)) qty.value = p.cantidad > 0 ? p.cantidad : '';
+        }
+      }
+      if (targetProductoId === 'entradaProductoId'){
+        const qty2 = document.getElementById('entradaCantidad');
+        if (qty2){
+          // leave entrada without strict max, but store stock anyway
+        }
+      }
+
+      // if product already below minimum, show alert
+      const min = Number(p.stock_minimo || 0);
+      if(Number(p.cantidad) < min){
+        showAlert(`El producto "${p.nombre}" está por debajo del stock mínimo (stock: ${p.cantidad}, mínimo: ${min}).`, 'danger');
+      }
+      // clear results
+      container.innerHTML = '';
+    });
+    container.appendChild(a);
+  });
+}
+
+// AJAX search helper
+async function buscarProductos(q, containerId, targetStockId, targetProductoId, searchInputId) {
+  const container = document.getElementById(containerId);
+  if (!q) {
+    container.innerHTML = '';
+    return;
+  }
+  const resp = await fetch(`/Kardex/buscar?q=${encodeURIComponent(q)}`);
+  if (!resp.ok) return;
+  const data = await resp.json();
+  renderResultados(container, data.results, targetStockId, targetProductoId, searchInputId);
+}
+
+// Registrar movimiento (entrada/salida)
+async function registrarMovimiento(tipo) {
+  const productoId = document.getElementById(tipo === 'entrada' ? 'entradaProductoId' : 'salidaProductoId').value;
+  const cantidad = document.getElementById(tipo === 'entrada' ? 'entradaCantidad' : 'salidaCantidad').value;
+  const motivo = document.getElementById(tipo === 'entrada' ? 'entradaMotivo' : 'salidaMotivo').value || '';
+  if (!productoId || !cantidad || Number(cantidad) <= 0) {
+    showAlert('Selecciona un producto y una cantidad válida', 'danger');
+    return;
+  }
+  // client-side validation for salida: cantidad no puede ser mayor al stock actual
+  if (tipo === 'salida'){
+    const hidden = document.getElementById('salidaProductoId');
+    const stock = hidden && hidden.dataset && hidden.dataset.stock ? Number(hidden.dataset.stock) : null;
+    if (stock !== null && Number(cantidad) > stock){
+      showAlert('No hay suficiente stock para realizar esta salida', 'danger');
+      return;
+    }
+  }
+  const body = new URLSearchParams();
+  body.append('producto_id', productoId);
+  body.append('tipo', tipo);
+  body.append('cantidad', cantidad);
+  body.append('motivo', motivo);
+
+  const resp = await fetch('/Kardex/registrar', {
+    method: 'POST',
+    headers: {
+      'X-CSRFToken': getCookie('csrftoken'),
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
+    body: body.toString()
+  });
+  if (!resp.ok) {
+    const err = await resp.json().catch(()=>({error:'error'}));
+    showAlert(err.error || 'Error al registrar', 'danger');
+    return;
+  }
+  const data = await resp.json();
+  if (!data.ok) {
+    alert(data.error || 'No se pudo registrar');
+    return;
+  }
+
+  // Añadir al listado del kardex (al principio)
+  const list = document.getElementById('kardexLista');
+  const it = document.createElement('div');
+  it.className = 'list-group-item d-flex justify-content-between align-items-start ' + (data.entry.tipo === 'entrada' ? 'kardex-item-entrada' : 'kardex-item-salida');
+  it.innerHTML = `<div><div class="fw-bold">${data.entry.tipo} — ${data.entry.producto_nombre}</div><div class="small text-muted">${data.entry.motivo} • ${data.entry.fecha}</div></div><div class="text-end"><div>Cantidad: <strong>${data.entry.cantidad}</strong></div><div>Stock: <strong>${data.entry.stock_after}</strong></div><div>Stock mínimo: <strong>${data.entry.stock_minimo}</strong></div></div>`;
+  if (list.firstChild) list.insertBefore(it, list.firstChild);
+  else list.appendChild(it);
+
+  // Actualizar stock pill en modal
+  if (tipo === 'entrada') {
+    document.getElementById('entradaStock').innerHTML = `<strong>stock actual:</strong> ${data.entry.stock_after}`;
+  } else {
+    document.getElementById('salidaStock').innerHTML = `<strong>stock actual:</strong> ${data.entry.stock_after}`;
+  }
+
+  // Si después del movimiento está por debajo del stock mínimo, mostrar alerta
+  if (typeof data.entry.stock_minimo !== 'undefined' && Number(data.entry.stock_after) < Number(data.entry.stock_minimo)){
+    showAlert(`El producto "${data.entry.producto_nombre}" quedó por debajo del stock mínimo (stock: ${data.entry.stock_after}, mínimo: ${data.entry.stock_minimo}).`, 'danger');
+  }
+
+  // Cerrar modal
+  const modalId = tipo === 'entrada' ? 'modalEntrada' : 'modalSalida';
+  const modalEl = document.getElementById(modalId);
+  const bsModal = bootstrap.Modal.getInstance(modalEl);
+  if (bsModal) bsModal.hide();
+}
+
+// Event listeners
+document.addEventListener('DOMContentLoaded', () => {
+  // Entrada
+  const eBuscar = document.getElementById('entradaBuscar');
+  if (eBuscar) {
+    let t;
+    eBuscar.addEventListener('input', (ev) => {
+      clearTimeout(t);
+      t = setTimeout(()=> buscarProductos(ev.target.value, 'entradaResultados', 'entradaStock', 'entradaProductoId', 'entradaBuscar'), 300);
+    });
+    document.getElementById('entradaGuardar').addEventListener('click', ()=> registrarMovimiento('entrada'));
+  }
+
+  // Salida
+  const sBuscar = document.getElementById('salidaBuscar');
+  if (sBuscar) {
+    let t2;
+    sBuscar.addEventListener('input', (ev) => {
+      clearTimeout(t2);
+      t2 = setTimeout(()=> buscarProductos(ev.target.value, 'salidaResultados', 'salidaStock', 'salidaProductoId', 'salidaBuscar'), 300);
+    });
+    document.getElementById('salidaGuardar').addEventListener('click', ()=> registrarMovimiento('salida'));
+  }
+});
+</script>
 </body>
 </html>

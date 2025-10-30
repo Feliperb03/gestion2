@@ -9,6 +9,7 @@
 <!-- Bootstrap Icons -->
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 {% load static %}
+{% load humanize %}
 
 <style>
 :root{
@@ -136,152 +137,742 @@ body{background:#f5f6fa;}
     <h3>Registrar nuevo producto</h3>
     <p class="text-muted">Completa los campos para agregar un producto al sistema.</p>
 
-    <!-- ====== Formulario (reemplaza a las cards) ====== -->
+    {% if messages %}
+      <div class="container-fluid mt-2">
+        {% for message in messages %}
+          {% if 'error' in message.tags %}
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+              {{ message }}
+              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+          {% elif 'warning' in message.tags %}
+            <div class="alert alert-warning alert-dismissible fade show" role="alert">
+              {{ message }}
+              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+          {% elif 'success' in message.tags %}
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+              {{ message }}
+              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+          {% else %}
+            <div class="alert alert-info alert-dismissible fade show" role="alert">
+              {{ message }}
+              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+    {% endif %}
+    {% if form.errors %}
+      <div class="container-fluid mt-2">
+        <div class="alert alert-danger" role="alert">
+          <strong>Faltan o hay errores en los siguientes campos:</strong>
+          <ul class="mb-0">
+            {% for field, errs in form.errors.items %}
+              <li><strong>{{ field }}</strong>: {{ errs|join:', ' }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+    {% endif %}
+
+    <!-- Tabla de productos y modal para agregar (diseño estilo proveedores) -->
     <section class="container-fluid mt-3">
-      <div class="card card-shell p-4 p-md-5">
-        <form>
-          <div class="row g-4">
-            <!-- Nombre -->
-            <div class="col-md-6 underline-input">
-              <label class="form-label small fw-semibold">
-                <i class="bi bi-pencil me-1"></i> Nombre
-              </label>
-              <div class="input-group">
-                <span class="input-group-text bg-none"><i class="bi bi-pencil"></i></span>
-                <input type="text" class="form-control" placeholder="Ej: Luces">
-              </div>
-            </div>
+          <div class="d-flex align-items-center mb-3">
+        <h5 class="mb-0">Productos</h5>
+        <div class="ms-auto">
+          <button id="btnOpenAddProduct" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalAgregarProducto">
+            <i class="bi bi-plus-lg"></i> Añadir producto
+          </button>
+        </div>
+      </div>
 
-            <!-- Código de barras -->
-            <div class="col-md-6 underline-input">
-              <label class="form-label small fw-semibold">
-                <i class="bi bi-upc-scan me-1"></i> Código de barras
-              </label>
-              <div class="input-group">
-                <span class="input-group-text bg-none"><i class="bi bi-upc-scan"></i></span>
-                <input type="text" class="form-control" placeholder="EAN/UPC">
-              </div>
-            </div>
-
-            <!-- Marca + -->
-            <div class="col-md-6">
-              <label class="form-label small fw-semibold">
-                <i class="bi bi-gear-wide-connected me-1"></i> Marca
-              </label>
-              <div class="d-flex gap-2">
-                <select class="form-select flex-grow-1">
-                  <option selected>Genérica</option>
-                  <option>ACME</option>
-                  <option>Otra…</option>
-                </select>
-                <button type="button" class="btn btn-light border shadow-sm" aria-label="Agregar marca">
-                  <i class="bi bi-plus-lg"></i>
-                </button>
-              </div>
-            </div>
-
-            <!-- Código interno -->
-            <div class="col-md-6 underline-input">
-              <label class="form-label small fw-semibold">
-                <i class="bi bi-key me-1"></i> Código interno
-              </label>
-              <div class="input-group">
-                <span class="input-group-text bg-none"><i class="bi bi-key"></i></span>
-                <input type="text" class="form-control" placeholder="SKU interno">
-              </div>
-            </div>
-
-            <!-- Stock -->
-            <div class="col-md-6 underline-input">
-              <label class="form-label small fw-semibold">
-                <i class="bi bi-box-seam me-1"></i> Stock
-              </label>
-              <div class="input-group">
-                <span class="input-group-text bg-none"><i class="bi bi-box-seam"></i></span>
-                <input type="number" min="0" class="form-control" placeholder="0">
-              </div>
-            </div>
-
-            <!-- Precio venta -->
-            <div class="col-md-6 underline-input">
-              <label class="form-label small fw-semibold">
-                <i class="bi bi-cash-stack me-1"></i> Precio de venta
-              </label>
-              <div class="input-group">
-                <span class="input-group-text bg-none"><i class="bi bi-cash-stack"></i></span>
-                <input type="number" step="0.01" min="0" class="form-control" placeholder="0.00">
-              </div>
-            </div>
-
-            <!-- Stock mínimo -->
-            <div class="col-md-6 underline-input">
-              <label class="form-label small fw-semibold">
-                <i class="bi bi-bell me-1"></i> Stock mínimo
-              </label>
-              <div class="input-group">
-                <span class="input-group-text bg-none"><i class="bi bi-bell"></i></span>
-                <input type="number" min="0" class="form-control" placeholder="0">
-              </div>
-            </div>
-
-            <!-- Precio compra -->
-            <div class="col-md-6 underline-input">
-              <label class="form-label small fw-semibold">
-                <i class="bi bi-wallet2 me-1"></i> Precio de compra
-              </label>
-              <div class="input-group">
-                <span class="input-group-text bg-none"><i class="bi bi-wallet2"></i></span>
-                <input type="number" step="0.01" min="0" class="form-control" placeholder="0.00">
-              </div>
-            </div>
-
-            <!-- Categoría + -->
-            <div class="col-md-6">
-              <label class="form-label small fw-semibold">
-                <i class="bi bi-diagram-3 me-1"></i> Categoría
-              </label>
-              <div class="d-flex gap-2">
-                <select class="form-select flex-grow-1">
-                  <option selected>General</option>
-                  <option>Iluminación</option>
-                  <option>Accesorios</option>
-                </select>
-                <button type="button" class="btn btn-light border shadow-sm" aria-label="Agregar categoría">
-                  <i class="bi bi-plus-lg"></i>
-                </button>
-              </div>
-            </div>
-            <!-- Proveedor -->
-            <div class="col-md-6">
-              <label class="form-label small fw-semibold">
-                <i class="bi bi-diagram-3 me-1"></i> Proveedor Rut
-              </label>
-              <div class="d-flex gap-2">
-                <select class="form-select flex-grow-1">
-                  <option selected>11.111.111-1</option>
-                  <option>22.222.222-2</option>
-                </select>
-              </div>
-            </div>
-
-            <!-- Botón guardar -->
-            <div class="col-12">
-              <div class="d-flex justify-content-end">
-                <button type="submit" class="btn btn-primary btn-save">
-                  <i class="bi bi-save me-2"></i> Guardar
-                </button>
-              </div>
-            </div>
-
-          </div>
-        </form>
+      <div class="card card-shell p-3">
+        <div class="table-responsive">
+          <table class="table table-hover table-striped align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Código</th>
+                <th>Nombre</th>
+                <th>Marca</th>
+                <th>Categoría</th>
+                <th>Stock</th>
+                <th>Stock mínimo</th>
+                <th>Precio</th>
+                <th>Precio compra</th>
+                <th>Proveedor</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% if productos %}
+                {% for p in productos %}
+                  <tr>
+                    <td>{{ p.codigo_interno }}</td>
+                    <td>{{ p.nombre }}</td>
+                    <td>
+                      {% if p.marca %}
+                        {{ p.marca.nombre }}
+                      {% else %}
+                        -
+                      {% endif %}
+                    </td>
+                    <td>{{ p.categoria }}</td>
+                    <td>{{ p.cantidad }}</td>
+                    <td>{{ p.stock_minimo }}</td>
+                    <td>{{ p.precio|intcomma }}</td>
+                    <td>{{ p.precio_compra|intcomma }}</td>
+                    <td>
+                      {% if p.proveedor %}
+                        {{ p.proveedor.rut_pro }}
+                      {% else %}
+                        -
+                      {% endif %}
+                    </td>
+                    <td class="text-end">
+                      <!-- Acciones futuras: editar / eliminar -->
+          <button class="btn btn-sm btn-outline-secondary btn-edit-product" onclick="openEditModal(this)"
+                              data-id="{{ p.id }}"
+                              data-nombre="{{ p.nombre|default:''|escape }}"
+                              data-codigo_barras="{{ p.codigo_barras|default:''|escape }}"
+                              data-codigo_interno="{{ p.codigo_interno|default:''|escape }}"
+                              data-cantidad="{{ p.cantidad }}"
+                              data-stock_minimo="{{ p.stock_minimo }}"
+                              data-precio="{{ p.precio }}"
+                              data-precio_compra="{{ p.precio_compra|default_if_none:'' }}"
+                              {% if p.marca %}data-marca="{{ p.marca.id }}"{% else %}data-marca=""{% endif %}
+                              data-categoria="{{ p.categoria|default:''|escape }}"
+                              {% if p.proveedor %}data-proveedor="{{ p.proveedor.id }}"{% else %}data-proveedor=""{% endif %}
+                              title="Editar">
+                        <i class="bi bi-pencil"></i>
+                      </button>
+                      <button class="btn btn-sm btn-outline-danger btn-delete-product" onclick="openDeleteModal(this)" data-id="{{ p.id }}" data-nombre="{{ p.nombre|default:''|escape }}" title="Eliminar">
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </td>
+                  </tr>
+                {% endfor %}
+              {% else %}
+                <tr>
+                  <td colspan="10" class="text-center text-muted">No hay productos registrados.</td>
+                </tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
       </div>
     </section>
-    <!-- ====== /Formulario ====== -->
+
+    <!-- Modal: Agregar Producto (contiene el formulario que antes estaba en la página) -->
+    <div class="modal fade" id="modalAgregarProducto" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content border-0 rounded-4" style="background:#e9eef5;">
+          <div class="modal-header border-0">
+            <h5 class="modal-title fw-bold">Agregar producto</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+          </div>
+          <div class="modal-body pt-0">
+            <form id="formAgregarProducto" method="post">
+              {% csrf_token %}
+              <div class="row g-3">
+                <!-- Nombre -->
+                <div class="col-md-6 underline-input">
+                  <label class="form-label small fw-semibold">Nombre</label>
+                  <div class="input-group">
+                    <span class="input-group-text bg-none"><i class="bi bi-pencil"></i></span>
+                    <input type="text" name="nombre" class="form-control" placeholder="Ej: Luces" value="{{ form.nombre.value|default_if_none:'' }}">
+                  </div>
+                </div>
+
+                <!-- Código de barras -->
+                <div class="col-md-6 underline-input">
+                  <label class="form-label small fw-semibold">Código de barras</label>
+                  <div class="input-group">
+                    <span class="input-group-text bg-none"><i class="bi bi-upc-scan"></i></span>
+                    <input type="text" name="codigo_barras" class="form-control" placeholder="EAN/UPC" value="{{ form.codigo_barras.value|default_if_none:'' }}">
+                  </div>
+                </div>
+
+                <!-- Marca -->
+                <div class="col-md-6">
+                  <label class="form-label small fw-semibold">Marca</label>
+                  <div class="d-flex gap-2 align-items-center">
+                    <select id="marcaSelectModal" name="marca" class="form-select flex-grow-1">
+                      {% if marcas %}
+                        {% for marca in marcas %}
+                          <option value="{{ marca.id }}" data-color="{{ marca.color }}">{{ marca.nombre }}</option>
+                        {% endfor %}
+                      {% else %}
+                        <option data-color="#6c757d" selected>Genérica</option>
+                      {% endif %}
+                    </select>
+                    <span id="marcaColorSwatchModal" aria-hidden="true" style="display:inline-block;width:28px;height:28px;border-radius:6px;border:1px solid #ddd;margin-left:6px;background:#6c757d"></span>
+                    <button type="button" class="btn btn-light border shadow-sm" id="btnAgregarMarcaModal" data-bs-toggle="modal" data-bs-target="#modalAgregarMarca" aria-label="Agregar marca">
+                      <i class="bi bi-plus-lg"></i>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Código interno -->
+                <div class="col-md-6 underline-input">
+                  <label class="form-label small fw-semibold">Código interno</label>
+                  <div class="input-group">
+                    <span class="input-group-text bg-none"><i class="bi bi-key"></i></span>
+                    <input type="text" name="codigo_interno" class="form-control" placeholder="SKU interno" value="{{ form.codigo_interno.value|default:next_codigo_interno }}" readonly>
+                  </div>
+                </div>
+
+                <!-- Stock -->
+                <div class="col-md-6 underline-input">
+                  <label class="form-label small fw-semibold">Stock</label>
+                  <div class="input-group">
+                    <span class="input-group-text bg-none"><i class="bi bi-box-seam"></i></span>
+                    <input type="number" name="cantidad" min="0" class="form-control" placeholder="0" value="{{ form.cantidad.value|default_if_none:0 }}">
+                  </div>
+                </div>
+
+                <!-- Precio venta -->
+                <div class="col-md-6 underline-input">
+                  <label class="form-label small fw-semibold">Precio de venta</label>
+                  <div class="input-group">
+                    <span class="input-group-text bg-none"><i class="bi bi-cash-stack"></i></span>
+                    <input type="text" inputmode="numeric" name="precio" class="form-control" placeholder="Ej: 9.990" value="{{ form.precio.value|default_if_none:'' }}">
+                  </div>
+                </div>
+
+                <!-- Stock mínimo -->
+                <div class="col-md-6 underline-input">
+                  <label class="form-label small fw-semibold">Stock mínimo</label>
+                  <div class="input-group">
+                    <span class="input-group-text bg-none"><i class="bi bi-bell"></i></span>
+                    <input type="number" name="stock_minimo" min="0" class="form-control" placeholder="0" value="{{ form.stock_minimo.value|default_if_none:0 }}">
+                  </div>
+                </div>
+
+                <!-- Precio compra -->
+                <div class="col-md-6 underline-input">
+                  <label class="form-label small fw-semibold">Precio de compra</label>
+                  <div class="input-group">
+                    <span class="input-group-text bg-none"><i class="bi bi-wallet2"></i></span>
+                    <input type="text" inputmode="numeric" name="precio_compra" class="form-control" placeholder="Ej: 5.990" value="{{ form.precio_compra.value|default_if_none:'' }}">
+                  </div>
+                </div>
+
+                <!-- Categoría -->
+                <div class="col-md-6">
+                  <label class="form-label small fw-semibold">Categoría</label>
+                  <div class="d-flex gap-2">
+                    <select id="categoriaSelectModal" name="categoria" class="form-select flex-grow-1">
+                      {% if categorias %}
+                        {% for categoria in categorias %}
+                          <option value="{{ categoria.nombre }}" data-sub="{{ categoria.subcategoria }}">{{ categoria.nombre }}{% if categoria.subcategoria %} / {{ categoria.subcategoria }}{% endif %}</option>
+                        {% endfor %}
+                      {% else %}
+                        <option selected>General</option>
+                      {% endif %}
+                    </select>
+                    <button type="button" class="btn btn-light border shadow-sm" id="btnAgregarCategoriaModal" data-bs-toggle="modal" data-bs-target="#modalAgregarCategoria" aria-label="Agregar categoría">
+                      <i class="bi bi-plus-lg"></i>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Proveedor -->
+                <div class="col-md-6">
+                  <label class="form-label small fw-semibold">Proveedor Rut</label>
+                  <div class="d-flex gap-2">
+                    <select name="proveedor" class="form-select flex-grow-1">
+                      <option value="" selected>-- Ninguno --</option>
+                      {% for prov in proveedores %}
+                        <option value="{{ prov.id }}" {% if form.proveedor.value|stringformat:'s' == prov.id|stringformat:'s' %}selected{% endif %}>{{ prov.rut_pro }}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                </div>
+
+                <!-- Botones -->
+                <div class="col-12 mt-3">
+                  <div class="d-flex justify-content-end gap-2">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary btn-save"><i class="bi bi-save me-2"></i> Guardar</button>
+                  </div>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
 
   </main>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<!-- Modal: Agregar Marca -->
+<div class="modal fade" id="modalAgregarMarca" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content border-0 rounded-4" style="background:#e9eef5;">
+      <div class="modal-header border-0">
+        <h5 class="modal-title fw-bold">Agregar Marca</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body pt-0">
+        <form id="formAgregarMarca">
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Nombre de la marca</label>
+            <input type="text" name="marca_nombre" class="form-control" placeholder="Ej: ACME" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Color</label>
+            <input type="color" name="marca_color" class="form-control form-control-color" value="#ff0000" title="Elige un color">
+          </div>
+          <div class="d-flex justify-content-end">
+            <button type="submit" class="btn btn-primary">Agregar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Confirmar Eliminar Producto -->
+<div class="modal fade" id="modalEliminarProducto" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content border-0 rounded-4" style="background:#fff;">
+      <div class="modal-header border-0">
+        <h5 class="modal-title fw-bold text-danger">Eliminar producto</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <p>¿Estás seguro que deseas eliminar el producto <strong id="deleteProductName"></strong>?</p>
+        <div class="d-flex justify-content-end gap-2">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button id="confirmDeleteProduct" type="button" class="btn btn-danger">Eliminar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function(){
+    var form = document.getElementById('formAgregarMarca');
+    function updateMarcaSwatch(){
+      // soporta ambos selects (en página y en modal)
+      var selMain = document.getElementById('marcaSelect');
+      var selModal = document.getElementById('marcaSelectModal');
+      var swatchMain = document.getElementById('marcaColorSwatch');
+      var swatchModal = document.getElementById('marcaColorSwatchModal');
+
+      function applyFrom(selectEl, swatchEl){
+        if (!selectEl || !swatchEl) return;
+        var opt = selectEl.options[selectEl.selectedIndex];
+        var color = (opt && opt.getAttribute('data-color')) || '#6c757d';
+        swatchEl.style.background = color;
+        swatchEl.setAttribute('title', color);
+      }
+
+      applyFrom(selMain, swatchMain);
+      applyFrom(selModal, swatchModal);
+    }
+    var marcaSelectEl = document.getElementById('marcaSelect') || document.getElementById('marcaSelectModal');
+    if (marcaSelectEl){
+      marcaSelectEl.addEventListener('change', updateMarcaSwatch);
+    }
+
+    if (!form) return;
+    form.addEventListener('submit', function(e){
+      e.preventDefault();
+      var nombre = (this.marca_nombre.value || '').trim();
+      var color = this.marca_color.value || '#000000';
+      if (!nombre) {
+        alert('Por favor ingresa el nombre de la marca.');
+        return;
+      }
+
+      var endpoint = "{% url 'marca_nuevo' %}";
+
+      function getCookie(name) {
+        var cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+          var cookies = document.cookie.split(';');
+          for (var i = 0; i < cookies.length; i++) {
+            var cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+              cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+              break;
+            }
+          }
+        }
+        return cookieValue;
+      }
+      var csrftoken = getCookie('csrftoken');
+
+      var formData = new FormData();
+      formData.append('marca_nombre', nombre);
+      formData.append('marca_color', color);
+
+      fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': csrftoken
+        },
+        body: formData
+      }).then(function(res){
+        return res.json();
+      }).then(function(data){
+        if (data.error) {
+          alert(data.error);
+          return;
+        }
+        var selectMain = document.getElementById('marcaSelect');
+        var selectModal = document.getElementById('marcaSelectModal');
+        [selectMain, selectModal].forEach(function(select){
+          if (!select) return;
+          var opt = document.createElement('option');
+          opt.value = data.id || data.nombre;
+          opt.text = data.nombre;
+          opt.setAttribute('data-color', data.color || color);
+          select.appendChild(opt);
+          try{ select.value = data.id || data.nombre; }catch(e){}
+        });
+        updateMarcaSwatch();
+        var modalEl = document.getElementById('modalAgregarMarca');
+        var modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+        modal.hide();
+        form.reset();
+      }).catch(function(err){
+        console.error('Error creando marca:', err);
+        alert('Ocurrió un error al crear la marca. Revisa la consola.');
+      });
+    });
+
+  document.addEventListener('DOMContentLoaded', function(){ updateMarcaSwatch(); });
+  })();
+</script>
+
+<!-- Modal: Agregar Categoría -->
+<div class="modal fade" id="modalAgregarCategoria" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content border-0 rounded-4" style="background:#e9eef5;">
+      <div class="modal-header border-0">
+        <h5 class="modal-title fw-bold">Agregar Categoría</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body pt-0">
+        <form id="formAgregarCategoria">
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Nombre de la categoría</label>
+            <input type="text" name="categoria_nombre" class="form-control" placeholder="Ej: Iluminación" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Subcategoría (opcional)</label>
+            <input type="text" name="categoria_subcategoria" class="form-control" placeholder="Ej: Bombillas">
+          </div>
+          <div class="d-flex justify-content-end">
+            <button type="submit" class="btn btn-primary">Agregar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function(){
+    var form = document.getElementById('formAgregarCategoria');
+    if (!form) return;
+
+    form.addEventListener('submit', function(e){
+      e.preventDefault();
+      var nombre = (this.categoria_nombre.value || '').trim();
+      var sub = (this.categoria_subcategoria.value || '').trim();
+      if (!nombre) {
+        alert('Por favor ingresa el nombre de la categoría.');
+        return;
+      }
+
+      var endpoint = "{% url 'categoria_nuevo' %}";
+
+      function getCookie(name) {
+        var cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+          var cookies = document.cookie.split(';');
+          for (var i = 0; i < cookies.length; i++) {
+            var cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+              cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+              break;
+            }
+          }
+        }
+        return cookieValue;
+      }
+      var csrftoken = getCookie('csrftoken');
+
+      var formData = new FormData();
+      formData.append('categoria_nombre', nombre);
+      formData.append('categoria_subcategoria', sub);
+
+      fetch(endpoint, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': csrftoken },
+        body: formData
+      }).then(function(res){ return res.json(); }).then(function(data){
+        if (data.error) { alert(data.error); return; }
+        var selectMain = document.getElementById('categoriaSelect');
+        var selectModal = document.getElementById('categoriaSelectModal');
+        [selectMain, selectModal].forEach(function(select){
+          if (!select) return;
+          var opt = document.createElement('option');
+          opt.value = data.id || data.nombre;
+          opt.text = data.nombre + (data.subcategoria ? ' / ' + data.subcategoria : '');
+          opt.setAttribute('data-sub', data.subcategoria || '');
+          select.appendChild(opt);
+          try{ select.value = data.id || data.nombre; }catch(e){}
+        });
+        var modalEl = document.getElementById('modalAgregarCategoria');
+        var modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+        modal.hide();
+        form.reset();
+      }).catch(function(err){
+        console.error('Error creando categoría:', err);
+        alert('Ocurrió un error al crear la categoría. Revisa la consola.');
+      });
+    });
+  })();
+</script>
+  <!-- Helper: formateo CLP (miles) -->
+  <script>
+    (function(){
+      // Formatea un número limpio (solo dígitos) a estilo CLP con puntos de miles
+      function formatCLP(value){
+        if (value == null) return '';
+        var s = String(value).replace(/\D+/g,'');
+        if (!s) return '';
+        return s.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+      }
+
+      // Quita puntos/comas y deja solo dígitos
+      function unformatCLP(value){
+        if (value == null) return '';
+        return String(value).replace(/[\.\,\s]/g,'').replace(/[^0-9]/g,'');
+      }
+
+      // Cuenta dígitos antes de la posición del cursor
+      function digitsBeforeCursor(value, pos){
+        if (!value) return 0;
+        var slice = value.slice(0, pos || 0);
+        var m = slice.match(/\d/g);
+        return m ? m.length : 0;
+      }
+
+      // Dado un formato con puntos, encontrar la posición (index) que corresponde a N dígitos
+      function posFromDigits(formatted, digits){
+        if (!formatted) return 0;
+        if (!digits) return 0;
+        var count = 0;
+        for (var i = 0; i < formatted.length; i++){
+          if (/\d/.test(formatted.charAt(i))) count++;
+          if (count === digits) return i + 1; // cursor after this char
+        }
+        return formatted.length;
+      }
+
+      // Selecciona los inputs de precio
+      var priceInputs = Array.prototype.slice.call(document.querySelectorAll('input[name="precio"], input[name="precio_compra"]'));
+      if (priceInputs.length){
+        priceInputs.forEach(function(inp){
+          // Al enfocar: mostrar sin formato para facilitar edición
+          inp.addEventListener('focus', function(){
+            var un = unformatCLP(this.value);
+            this.value = un;
+            try{ this.setSelectionRange(this.value.length, this.value.length); }catch(e){}
+          });
+
+          // Al teclear: formateo en vivo manteniendo cursor
+          inp.addEventListener('input', function(e){
+            var el = this;
+            var raw = el.value;
+            var selStart = el.selectionStart;
+            // número de dígitos antes del cursor en el valor actual
+            var digitsBefore = digitsBeforeCursor(raw, selStart);
+
+            // desformatear, luego formatear
+            var un = unformatCLP(raw);
+            var formatted = formatCLP(un);
+
+            // reemplazar valor y recalcular posición del cursor basado en dígitos
+            el.value = formatted;
+            var newPos = posFromDigits(formatted, digitsBefore);
+            try{ el.setSelectionRange(newPos, newPos); }catch(err){}
+          });
+
+          // Al perder foco: asegurar formato final
+          inp.addEventListener('blur', function(){
+            this.value = formatCLP(unformatCLP(this.value));
+          });
+        });
+
+        // Manejo del submit específicamente para el modal de producto
+        var formProduct = document.getElementById('formAgregarProducto');
+        if (formProduct){
+          formProduct.addEventListener('submit', function(e){
+            // desformatear precios antes de enviar
+            priceInputs.forEach(function(i){ i.value = unformatCLP(i.value); });
+
+            // Si la acción del formulario apunta al endpoint de edición, hacemos AJAX
+            var action = formProduct.getAttribute('action') || '';
+            if (action.indexOf('/productos/') !== -1 && action.indexOf('/editar/') !== -1){
+              e.preventDefault();
+              var fd = new FormData(formProduct);
+              // CSRF
+              function getCookie(name) {
+                var cookieValue = null;
+                if (document.cookie && document.cookie !== '') {
+                  var cookies = document.cookie.split(';');
+                  for (var i = 0; i < cookies.length; i++) {
+                    var cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                      cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                      break;
+                    }
+                  }
+                }
+                return cookieValue;
+              }
+              var csrftoken = getCookie('csrftoken');
+
+              fetch(action, { method: 'POST', headers: { 'X-CSRFToken': csrftoken }, body: fd })
+                .then(function(res){ return res.json(); })
+                .then(function(data){
+                  if (data.ok){
+                    // cerrar modal y recargar para ver cambios
+                    try{ var bsModal = bootstrap.Modal.getInstance(document.getElementById('modalAgregarProducto')); if (bsModal) bsModal.hide(); }catch(e){}
+                    location.reload();
+                  } else {
+                    alert('Errores al guardar: ' + JSON.stringify(data.errors || data));
+                  }
+                }).catch(function(err){ console.error('Error guardando producto:', err); alert('Error guardando producto. Revisa la consola.'); });
+            }
+            // De lo contrario, dejamos que el formulario se envíe de forma clásica (creación)
+          });
+        }
+      }
+    })();
+  </script>
+
+  <script>
+    // Global helper to open edit modal directly from button (fallback for delegation)
+    function openEditModal(btn){
+      try{
+        var id = btn.getAttribute('data-id');
+        var baseUrl = "{% url 'producto_editar' 0 %}"; // /productos/0/editar/
+        var url = baseUrl.replace('/0/', '/' + id + '/');
+        console.log('openEditModal', id, url);
+        var form = document.getElementById('formAgregarProducto');
+        var modalEl = document.getElementById('modalAgregarProducto');
+        var modal = modalEl ? new bootstrap.Modal(modalEl) : null;
+
+        function setIfExists(name, value){
+          try{ var el = form.querySelector('[name="'+name+'"]'); if (el) el.value = (value !== null && value !== undefined)? value : ''; }catch(e){}
+        }
+
+        // read attributes
+        var read = function(name){
+          var v = btn.getAttribute('data-' + name);
+          return v === null ? null : v;
+        };
+
+        var dataObj = {
+          nombre: read('nombre') || '',
+          codigo_barras: read('codigo_barras') || '',
+          codigo_interno: read('codigo_interno') || '',
+          cantidad: read('cantidad') ? parseInt(read('cantidad'),10) : 0,
+          stock_minimo: read('stock_minimo') ? parseInt(read('stock_minimo'),10) : 0,
+          precio: read('precio') ? parseInt(read('precio'),10) : '',
+          precio_compra: read('precio_compra') ? parseInt(read('precio_compra'),10) : '',
+          marca: read('marca') || null,
+          categoria: read('categoria') || '',
+          proveedor: read('proveedor') || null,
+          codigo_interno: read('codigo_interno') || ''
+        };
+
+        if (form) form.setAttribute('action', url);
+        setIfExists('nombre', dataObj.nombre);
+        setIfExists('codigo_barras', dataObj.codigo_barras);
+        setIfExists('codigo_interno', dataObj.codigo_interno);
+        setIfExists('cantidad', dataObj.cantidad);
+        setIfExists('stock_minimo', dataObj.stock_minimo);
+        setIfExists('precio', dataObj.precio);
+        setIfExists('precio_compra', dataObj.precio_compra);
+        try{ if (dataObj.marca) form.querySelector('select[name="marca"]').value = dataObj.marca; }catch(e){}
+        try{ if (dataObj.categoria) form.querySelector('select[name="categoria"]').value = dataObj.categoria; }catch(e){}
+        try{ if (dataObj.proveedor) form.querySelector('select[name="proveedor"]').value = dataObj.proveedor; }catch(e){}
+
+        if (modal) modal.show();
+      }catch(err){ console.error('openEditModal error', err); alert('No se pudo abrir el editor: ' + err); }
+    }
+  </script>
+
+  <script>
+    // Delete modal helper
+    function openDeleteModal(btn){
+      try{
+        var id = btn.getAttribute('data-id');
+        var name = btn.getAttribute('data-nombre') || '';
+        var modalEl = document.getElementById('modalEliminarProducto');
+        var modal = modalEl ? new bootstrap.Modal(modalEl) : null;
+        var nameEl = document.getElementById('deleteProductName');
+        var confirmBtn = document.getElementById('confirmDeleteProduct');
+        if (nameEl) nameEl.textContent = name;
+        // store id on confirm button
+        if (confirmBtn) confirmBtn.setAttribute('data-id', id);
+        if (modal) modal.show();
+      }catch(err){ console.error('openDeleteModal error', err); alert('No se pudo abrir el diálogo de eliminación.'); }
+    }
+
+    // confirm delete click
+    (function(){
+      var confirmBtn = document.getElementById('confirmDeleteProduct');
+      if (!confirmBtn) return;
+      confirmBtn.addEventListener('click', function(){
+        var id = this.getAttribute('data-id');
+        if (!id) return;
+        var url = "{% url 'producto_eliminar' 0 %}".replace('/0/', '/' + id + '/');
+
+        function getCookie(name) {
+          var cookieValue = null;
+          if (document.cookie && document.cookie !== '') {
+            var cookies = document.cookie.split(';');
+            for (var i = 0; i < cookies.length; i++) {
+              var cookie = cookies[i].trim();
+              if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+              }
+            }
+          }
+          return cookieValue;
+        }
+
+        var csrftoken = getCookie('csrftoken');
+        fetch(url, { method: 'POST', headers: { 'X-CSRFToken': csrftoken } })
+          .then(function(res){ return res.json(); })
+          .then(function(data){
+            if (data.ok){
+              try{ var bsModal = bootstrap.Modal.getInstance(document.getElementById('modalEliminarProducto')); if (bsModal) bsModal.hide(); }catch(e){}
+              location.reload();
+            } else {
+              alert('No se pudo eliminar el producto.');
+            }
+          }).catch(function(err){ console.error('Error eliminando producto:', err); alert('Error eliminando producto. Revisa la consola.'); });
+      });
+    })();
+  </script>
+
+  </body>
+  </html>
 </body>
 </html>

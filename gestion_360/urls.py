@@ -31,33 +31,42 @@ urlpatterns = [
     path('password_change/done/', auth_views.PasswordChangeDoneView.as_view(template_name='registration/password_change_done.html'), name='password_change_done'),
     path('main/', views.mostraMain, name="main"),
     path('registrarProducto/', views.mostrarRegistrarProducto, name="registrarProducto"),
-    path("registrarProducto/nuevo/", views.registrar_producto_view, name="registrarProducto"),
     path('Kardex/', views.mostrarKardex, name="kardex"),
     path('empleados/', views.mostrarEmpleados, name="empleados"),
     path('historial/', views.mostrarHistorial, name="historial"),
-    path('reportes/', views.mostrarReportes, name="reportes"),
-    path('proveedores/', views.mostrarProveedores, name="proveedores"),
+    path('reportes/', views.mostrarReportes, name='reportes'),
+    path('proveedores/', views.mostrarProveedores, name='proveedores'),
+    # Editar / Eliminar proveedores
+    path('proveedores/<int:pk>/editar/', views.proveedor_editar, name='proveedor_editar'),
+    path('proveedores/<int:pk>/eliminar/', views.proveedor_eliminar, name='proveedor_eliminar'),
+    # Endpoint para creación de marcas desde la UI
+    path('marcas/nuevo/', views.marca_nuevo, name='marca_nuevo'),
+    path('categorias/nuevo/', views.categoria_nuevo, name='categoria_nuevo'),
+    path('productos/<int:pk>/editar/', views.producto_editar, name='producto_editar'),
+    path('productos/<int:pk>/eliminar/', views.producto_eliminar, name='producto_eliminar'),
+    path('Kardex/buscar', views.kardex_buscar, name='kardex_buscar'),
+    path('Kardex/registrar', views.kardex_registrar, name='kardex_registrar'),
     path('reportes/generar/', views.generar_reporte_view, name='generar_reporte'),
     path('password_reset/', 
-         auth_views.PasswordResetView.as_view(template_name='registration/password_reset_form.html',
-                                               email_template_name='registration/password_reset_email.html',
-                                               subject_template_name='registration/password_reset_subject.txt'), 
-         name='password_reset'),
+        auth_views.PasswordResetView.as_view(template_name='registration/password_reset_form.html',
+                                      email_template_name='registration/password_reset_email.html',
+                                      subject_template_name='registration/password_reset_subject.txt'), 
+        name='password_reset'),
     
     path('password_reset/done/', 
-         auth_views.PasswordResetDoneView.as_view(template_name='registration/password_reset_done.html'), 
-         name='password_reset_done'),
+        auth_views.PasswordResetDoneView.as_view(template_name='registration/password_reset_done.html'), 
+        name='password_reset_done'),
     
     path('reset/<uidb64>/<token>/', 
-         auth_views.PasswordResetConfirmView.as_view(template_name='registration/password_reset_confirm.html'), 
-         name='password_reset_confirm'),
+        auth_views.PasswordResetConfirmView.as_view(template_name='registration/password_reset_confirm.html'), 
+        name='password_reset_confirm'),
     
     path('reset/done/', 
-         auth_views.PasswordResetCompleteView.as_view(template_name='registration/password_reset_complete.html'), 
-         name='password_reset_complete'),
+        auth_views.PasswordResetCompleteView.as_view(template_name='registration/password_reset_complete.html'), 
+        name='password_reset_complete'),
     
     
-
+    
 ]
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
