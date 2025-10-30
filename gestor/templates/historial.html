@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Historial de acciones • Punto de Venta</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+{% load static %}
+
+<style>
+:root{
+  --sidebar-bg:#111827; --sidebar-bg-hover:#0b1220;
+  --sidebar-text:#e5e7eb; --sidebar-muted:#94a3b8;
+}
+html,body{height:100%;}
+body{background:#f5f6fa;}
+
+/* LAYOUT */
+.layout{
+  min-height:100vh; display:grid;
+  grid-template-columns:280px 1fr; grid-template-rows:auto 1fr;
+  grid-template-areas:"sidebar topbar" "sidebar main";
+}
+
+/* SIDEBAR */
+.sidebar{grid-area:sidebar;background:var(--sidebar-bg);color:var(--sidebar-text);}
+.sidebar .brand{height:64px;padding:0 1rem;border-bottom:1px solid rgba(255,255,255,.06);}
+.sidebar .brand .btn{color:var(--sidebar-text)}
+.sidebar .profile{padding:1.25rem 1rem;border-bottom:1px solid rgba(255,255,255,.06)}
+.avatar{width:72px;height:72px;border-radius:50%;background:linear-gradient(145deg,#fbbf24,#ef4444);
+  display:grid;place-items:center;color:#fff;font-size:2rem;font-weight:700;box-shadow:0 8px 24px rgba(0,0,0,.35);}
+.sidebar a{color:var(--sidebar-text);text-decoration:none}
+.sidebar .nav-link{color:var(--sidebar-text);opacity:.9;border-radius:.75rem;padding:.6rem .85rem}
+.sidebar .nav-link:hover{background:var(--sidebar-bg-hover);opacity:1}
+.sidebar .nav-link .bi{margin-right:.5rem}
+.sidebar .nav .collapse .nav-link{padding-left:2.3rem;opacity:.85}
+.sidebar small{color:var(--sidebar-muted)}
+
+/* TOPBAR */
+.topbar{grid-area:topbar;background:#fff;border-bottom:1px solid #e5e7eb;position:sticky;top:0;z-index:10}
+
+/* MAIN */
+.main{grid-area:main;padding:1.25rem;}
+
+/* === HISTORIAL UI === */
+.card-shell{background:#e9eef5;border:0;border-radius:1.25rem;box-shadow:0 8px 24px rgba(16,24,40,.06);}
+.history-header h3{font-weight:800;letter-spacing:.2px;}
+.history-tools .btn{border-width:2px;border-color:#11182722;font-weight:600;}
+.table-wrap{border:1px solid #e0e6ee;border-radius:1rem;overflow:hidden;background:#fff;}
+.table thead th{position:sticky;top:0;background:#f8fafc;z-index:1;}
+.table tbody tr:hover{background:#f2f6fb;}
+.table td,.table th{vertical-align:middle;}
+.badge-soft{background:#eef2ff;color:#3730a3;border:1px solid #c7d2fe;}
+.badge-soft-red{background:#fee2e2;color:#991b1b;border:1px solid #fecaca;}
+.badge-soft-green{background:#dcfce7;color:#166534;border:1px solid #bbf7d0;}
+.icon-col{width:56px;text-align:center;}
+/* paginación */
+.pager .btn{border:0;background:#4b5563;color:#fff}
+.pager .btn:hover{filter:brightness(1.05)}
+/* Responsive */
+@media (max-width: 992px){
+  .layout{grid-template-columns:0 1fr}
+  .sidebar{position:fixed;inset:0 auto 0 0;width:260px;transform:translateX(-100%);transition:transform .25s ease}
+  .sidebar.show{transform:none}
+}
+</style>
+</head>
+
+<body>
+<div class="layout">
+  <!-- Sidebar -->
+  <aside id="sidebar" class="sidebar d-flex flex-column">
+    <div class="brand d-flex align-items-center justify-content-between">
+      <a class="d-flex align-items-center text-decoration-none" href="#">
+        <i class="bi bi-box-seam fs-4 me-2"></i><span class="fw-semibold">Gestor de Inventario</span>
+      </a>
+      <button class="btn btn-sm d-lg-none" id="closeSidebar" aria-label="Cerrar menú"><i class="bi bi-x-lg"></i></button>
+    </div>
+
+    <div class="profile text-center">
+      <div class="mx-auto avatar mb-2">A</div>
+      <div class="fw-semibold">Administrador</div>
+      <small>Administrador</small>
+    </div>
+
+    <nav class="flex-grow-1 p-2">
+      <div class="px-2 text-uppercase small mb-2" style="color:#94a3b8">Menú</div>
+      <a class="nav-link" href="{% url 'main' %}"><i class="bi bi-speedometer2 me-2"></i>Dashboard</a>
+      <ul id="sidebarMenu" class="nav flex-column gap-1">
+        <li class="nav-item">
+          <a class="nav-link d-flex align-items-center" data-bs-toggle="collapse" href="#admMenu" role="button" aria-expanded="true" aria-controls="admMenu">
+            <i class="bi bi-gear me-2"></i><span>Administración</span><i class="bi bi-chevron-down ms-auto chevron"></i>
+          </a>
+          <div class="collapse show" id="admMenu" data-bs-parent="#sidebarMenu">
+            <a class="nav-link" href="{% url 'registrarProducto' %}"><i class="bi bi-box me-2"></i>Productos</a>
+            <a class="nav-link" href="{% url 'historial' %}"><i class="bi bi-tags me-2"></i>Historial</a>
+            <a class="nav-link" href="{% url 'proveedores' %}"><i class="bi bi-building me-2"></i>Proveedores</a>
+            <a class="nav-link" href="{% url 'kardex' %}"><i class="bi bi-clipboard-data me-2"></i>Kardex</a>
+            <a class="nav-link" href="{% url 'empleados' %}"><i class="bi bi-people me-2"></i>Empleados</a>
+            <a class="nav-link" href="{% url 'reportes' %}"><i class="bi bi-clock-history me-2"></i>Reportes</a>
+          </div>
+        </li>
+        <a class="nav-link" href="{% url 'login' %}"><i class="bi bi-box-arrow-right me-2"></i>Logout</a>
+      </ul>
+    </nav>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div class="card card-shell p-4 p-md-5">
+      <!-- encabezado + tools -->
+      <div class="d-flex flex-wrap align-items-center justify-content-between history-header mb-3">
+        <div class="d-flex align-items-center gap-2">
+          <i class="bi bi-clock-history fs-4 text-primary"></i>
+          <h3 class="mb-0">Historial de acciones de usuarios</h3>
+        </div>
+        <div class="history-tools d-flex align-items-center gap-2">
+          <form action="/historial/buscar" class="me-2" method="get">
+            <div class="input-group">
+              <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+              <input type="search" name="q" class="form-control" placeholder="Buscar usuario, acción, tabla…">
+            </div>
+          </form>
+          <div class="btn-group">
+            <a href="?hoy=1" class="btn btn-light">Hoy</a>
+            <a href="?7d=1" class="btn btn-light">7 días</a>
+            <a href="?30d=1" class="btn btn-light">30 días</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- tabla -->
+      <div class="table-wrap">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="text-muted">
+              <tr>
+                <th class="icon-col">ID</th>
+                <th>Usuario</th>
+                <th>Acción</th>
+                <th>Tabla</th>
+                <th>Fecha y hora</th>
+                <th class="text-end pe-4">—</th>
+              </tr>
+            </thead>
+            <tbody>
+              {# Reemplaza por tu loop de Django #}
+              <tr>
+                <td class="icon-col"><span class="badge bg-dark-subtle text-dark-emphasis">3</span></td>
+                <td><span class="fw-semibold">admin</span></td>
+                <td><span class="badge badge-soft-red">Eliminación</span> realizada</td>
+                <td><span class="badge badge-soft">Proveedor</span></td>
+                <td>Dec. 10, 2023, 10:18 p. m.</td>
+                <td class="text-end pe-4">
+                  <button class="btn btn-sm btn-outline-secondary"><i class="bi bi-eye"></i></button>
+                </td>
+              </tr>
+              <tr>
+                <td class="icon-col"><span class="badge bg-dark-subtle text-dark-emphasis">2</span></td>
+                <td><span class="fw-semibold">admin</span></td>
+                <td><span class="badge badge-soft-green">Insert</span> realizado</td>
+                <td><span class="badge badge-soft">Kardex</span></td>
+                <td>Dec. 10, 2023, 10:15 p. m.</td>
+                <td class="text-end pe-4">
+                  <button class="btn btn-sm btn-outline-secondary"><i class="bi bi-eye"></i></button>
+                </td>
+              </tr>
+              <tr>
+                <td class="icon-col"><span class="badge bg-dark-subtle text-dark-emphasis">1</span></td>
+                <td><span class="fw-semibold">admin</span></td>
+                <td>Inicia Sesión</td>
+                <td><span class="badge badge-soft">Empleado</span></td>
+                <td>Dec. 10, 2023, 10:04 p. m.</td>
+                <td class="text-end pe-4">
+                  <button class="btn btn-sm btn-outline-secondary"><i class="bi bi-eye"></i></button>
+                </td>
+              </tr>
+              {# /loop #}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- paginación -->
+      <div class="d-flex justify-content-center align-items-center gap-2 mt-3 pager">
+        <button class="btn" type="button" title="Cuadrícula"><i class="bi bi-grid-3x3-gap"></i></button>
+        <a class="btn" href="?page=prev" aria-label="Anterior"><i class="bi bi-chevron-left"></i></a>
+        <span class="mx-2 text-muted">1&nbsp; de&nbsp; 1</span>
+        <a class="btn" href="?page=next" aria-label="Siguiente"><i class="bi bi-chevron-right"></i></a>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

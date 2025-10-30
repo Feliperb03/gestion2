@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kardex • Punto de Venta</title>
+<!-- Bootstrap 5 -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<!-- Bootstrap Icons -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+{% load static %}
+
+<style>
+:root{
+  --sidebar-bg:#111827;
+  --sidebar-bg-hover:#0b1220;
+  --sidebar-text:#e5e7eb;
+  --sidebar-muted:#94a3b8;
+  --primary-100:#e6f0ff;
+  --panel-bg:#e9eef5;
+  --accent:#1d4ed8; /* azul rayita */
+}
+html,body{height:100%;}
+body{background:#f5f6fa;}
+
+/* LAYOUT */
+.layout{
+  min-height:100vh;
+  display:grid;
+  grid-template-columns:280px 1fr;
+  grid-template-rows:auto 1fr;
+  grid-template-areas:
+    "sidebar topbar"
+    "sidebar main";
+}
+
+/* SIDEBAR */
+.sidebar{grid-area:sidebar;background:var(--sidebar-bg);color:var(--sidebar-text);}
+.sidebar .brand{height:64px;padding:0 1rem;border-bottom:1px solid rgba(255,255,255,.06);}
+.sidebar .brand .btn{color:var(--sidebar-text)}
+.sidebar .profile{padding:1.25rem 1rem;border-bottom:1px solid rgba(255,255,255,.06)}
+.avatar{
+  width:72px;height:72px;border-radius:50%;
+  background:linear-gradient(145deg,#fbbf24,#ef4444);
+  display:grid;place-items:center;color:white;font-size:2rem;font-weight:700;
+  box-shadow:0 8px 24px rgba(0,0,0,.35);
+}
+.sidebar a{color:var(--sidebar-text);text-decoration:none}
+.sidebar .nav-link{color:var(--sidebar-text);opacity:.9;border-radius:.75rem;padding:.6rem 0.85rem}
+.sidebar .nav-link:hover{background:var(--sidebar-bg-hover);opacity:1}
+.sidebar .nav-link .bi{margin-right:.5rem}
+.sidebar .nav .collapse .nav-link{padding-left:2.3rem;opacity:.85}
+.sidebar small{color:var(--sidebar-muted)}
+
+/* TOPBAR */
+.topbar{grid-area:topbar;background:#ffffff;border-bottom:1px solid #e5e7eb;position:sticky;top:0;z-index:10}
+.topbar .search-input{max-width:380px}
+
+/* MAIN */
+.main{grid-area:main;padding:1.25rem;}
+
+/* -------- KARDEX UI -------- */
+.kardex-toolbar .btn{
+  border-width:2px;
+  border-color:#11182722;
+  font-weight:600;
+}
+.btn-pill-success{ background:#22c55e; color:#0b1220; }
+.btn-pill-success:hover{ filter:brightness(.95); color:#0b1220; }
+.btn-pill-danger{ background:#ef4444; color:#0b1220; }
+.btn-pill-danger:hover{ filter:brightness(.95); color:#0b1220; }
+
+.kardex-panel{
+  background:var(--panel-bg);
+  border-radius:1rem;
+  border:1px solid #d8dee9;
+  min-height:320px;
+  box-shadow:0 8px 24px rgba(16,24,40,.06) inset;
+}
+
+.kardex-title{
+  font-weight:700;
+}
+.kardex-center-title{
+  position:relative;
+  display:inline-block;
+  padding-top:.5rem;
+}
+.kardex-center-title::after{
+  content:"";
+  position:absolute;
+  left:50%;
+  transform:translateX(-50%);
+  bottom:-.35rem;
+  width:80px;
+  height:4px;
+  border-radius:4px;
+  background:var(--accent);
+}
+
+/* Responsive */
+@media (max-width: 992px){
+  .layout{grid-template-columns:0 1fr}
+  .sidebar{position:fixed;inset:0 auto 0 0;width:260px;transform:translateX(-100%);transition:transform .25s ease}
+  .sidebar.show{transform:none}
+}
+</style>
+</head>
+
+<body>
+<div class="layout">
+  <!-- Sidebar -->
+  <aside id="sidebar" class="sidebar d-flex flex-column">
+    <div class="brand d-flex align-items-center justify-content-between">
+      <a class="d-flex align-items-center text-decoration-none" href="#">
+        <i class="bi bi-box-seam fs-4 me-2"></i>
+        <span class="fw-semibold">Gestor de Inventario</span>
+      </a>
+      <button class="btn btn-sm d-lg-none" id="closeSidebar" aria-label="Cerrar menú">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+
+    <div class="profile text-center">
+      <div class="mx-auto avatar mb-2">A</div>
+      <div class="fw-semibold">Administrador</div>
+      <small>Administrador</small>
+    </div>
+
+    <nav class="flex-grow-1 p-2">
+      <div class="px-2 text-uppercase small mb-2" style="color:var(--sidebar-muted)">Menú</div>
+      <a class="nav-link" href="{% url 'main' %}">
+        <i class="bi bi-speedometer2 me-2"></i>Dashboard
+      </a>
+
+      <ul id="sidebarMenu" class="nav flex-column gap-1">
+        <li class="nav-item">
+          <a class="nav-link d-flex align-items-center" data-bs-toggle="collapse" href="#admMenu"
+             role="button" aria-expanded="true" aria-controls="admMenu">
+            <i class="bi bi-gear me-2"></i>
+            <span>Administración</span>
+            <i class="bi bi-chevron-down ms-auto chevron"></i>
+          </a>
+          <div class="collapse show" id="admMenu" data-bs-parent="#sidebarMenu">
+            <a class="nav-link" href="{% url 'registrarProducto' %}"><i class="bi bi-box me-2"></i>Productos</a>
+            <a class="nav-link" href="{% url 'historial' %}"><i class="bi bi-tags me-2"></i>Historial</a>
+            <a class="nav-link" href="{% url 'proveedores' %}"><i class="bi bi-building me-2"></i>Proveedores</a>
+            <a class="nav-link active" href="{% url 'kardex' %}"><i class="bi bi-clipboard-data me-2"></i>Kardex</a>
+            <a class="nav-link" href="{% url 'empleados' %}"><i class="bi bi-people me-2"></i>Empleados</a>
+            <a class="nav-link" href="{% url 'reportes' %}"><i class="bi bi-bar-chart-line me-2"></i>Reportes</a>
+          </div>
+        </li>
+        <a class="nav-link" href="{% url 'login' %}"><i class="bi bi-box-arrow-right me-2"></i>Logout</a>
+      </ul>
+    </nav>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <!-- Encabezado + acciones y buscador -->
+    <div class="d-flex align-items-center justify-content-between mb-3">
+      <div class="d-flex align-items-center gap-2">
+        <h3 class="kardex-title mb-0">Kardex</h3>
+        <i class="bi bi-chevron-right opacity-50"></i>
+        <div class="kardex-toolbar d-flex align-items-center gap-2">
+          <!-- Ajusta las URLs a tus vistas -->
+          <a class="btn btn-pill-success rounded-pill px-3 py-1"
+            data-bs-toggle="modal" data-bs-target="#modalEntrada">
+            Entrada
+          </a>
+
+          <a class="btn btn-pill-danger rounded-pill px-3 py-1"
+            data-bs-toggle="modal" data-bs-target="#modalSalida">
+            Salida
+          </a>
+
+        </div>
+      </div>
+
+      <!-- Buscador -->
+      <form class="ms-auto" style="min-width:260px;" action="/Kardex/buscar" method="get">
+        <div class="input-group">
+          <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+          <input type="search" name="q" class="form-control" placeholder="_buscar">
+        </div>
+      </form>
+    </div>
+
+    <!-- Panel principal -->
+    <div class="kardex-panel p-3">
+      <div class="w-100 h-100 d-flex flex-column align-items-center justify-content-start pt-2">
+        <div class="text-muted small kardex-center-title">
+          <i class="bi bi-c-circle me-1"></i> Kardex
+        </div>
+
+        <!-- Aquí dentro puedes renderizar tu tabla/lista de movimientos -->
+        <div class="flex-grow-1 w-100 mt-3">
+          <!-- contenido dinámico -->
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div class="modal fade" id="modalEntrada" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 rounded-4" style="background:#e9eef5;">
+      <div class="modal-header border-0">
+        <h5 class="modal-title fw-bold">Registrar entrada</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+
+      <div class="modal-body pt-0">
+        <!-- Buscar -->
+        <div class="mb-3">
+          <div class="input-group">
+            <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+            <input type="search" class="form-control form-control-lg" placeholder="...buscar">
+          </div>
+        </div>
+
+        <!-- Stock actual (pill verde) -->
+        <div class="mb-3">
+          <div class="p-3 rounded-3 border border-success-subtle bg-success-subtle text-success-emphasis">
+            <strong>stock actual:</strong> —
+          </div>
+        </div>
+
+        <!-- Cantidad (estilo subrayado) -->
+        <div class="mb-3">
+          <label class="form-label small fw-semibold">
+            <i class="bi bi-box-seam me-1"></i> Cantidad
+          </label>
+          <input type="number" class="form-control border-0 border-bottom border-2" placeholder="0">
+        </div>
+
+        <!-- Motivo (estilo subrayado) -->
+        <div class="mb-4">
+          <label class="form-label small fw-semibold">
+            <i class="bi bi-card-text me-1"></i> Motivo
+          </label>
+          <input type="text" class="form-control border-0 border-bottom border-2" placeholder="Opcional">
+        </div>
+
+        <button class="btn btn-primary btn-lg px-4 rounded-4 w-auto">
+          <i class="bi bi-save me-2"></i> Guardar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="modalSalida" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 rounded-4" style="background:#e9eef5;">
+      <div class="modal-header border-0">
+        <h5 class="modal-title fw-bold">Registrar salida</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+
+      <div class="modal-body pt-0">
+        <!-- Buscar producto -->
+        <div class="mb-3">
+          <div class="input-group">
+            <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+            <input type="search" class="form-control form-control-lg" placeholder="...buscar">
+          </div>
+        </div>
+
+        <!-- Stock actual (pill rojo) -->
+        <div class="mb-3">
+          <div class="p-3 rounded-3 border border-danger-subtle bg-danger-subtle text-danger-emphasis">
+            <strong>stock actual:</strong> —
+          </div>
+        </div>
+
+        <!-- Cantidad (subrayado) -->
+        <div class="mb-3">
+          <label class="form-label small fw-semibold">
+            <i class="bi bi-box-seam me-1"></i> Cantidad
+          </label>
+          <input type="number" min="1" class="form-control border-0 border-bottom border-2" placeholder="0">
+        </div>
+
+        <!-- Motivo (subrayado) -->
+        <div class="mb-4">
+          <label class="form-label small fw-semibold">
+            <i class="bi bi-card-text me-1"></i> Motivo
+          </label>
+          <input type="text" class="form-control border-0 border-bottom border-2" placeholder="Venta, merma, ajuste…">
+        </div>
+
+        <button class="btn btn-primary btn-lg px-4 rounded-4">
+          <i class="bi bi-save me-2"></i> Guardar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

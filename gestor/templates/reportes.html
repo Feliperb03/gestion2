@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dashboard • Punto de Venta</title>
+<!-- Bootstrap 5 -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<!-- Bootstrap Icons -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+{% load static %}
+
+<style>
+:root{
+  --sidebar-bg:#111827;
+  --sidebar-bg-hover:#0b1220;
+  --sidebar-text:#e5e7eb;
+  --sidebar-muted:#94a3b8;
+  --primary-100:#e6f0ff;
+}
+
+html,body{height:100%;}
+body{background:#f5f6fa;}
+
+/* LAYOUT */
+.layout{
+  min-height:100vh;
+  display:grid;
+  grid-template-columns:280px 1fr;
+  grid-template-rows:auto 1fr;
+  grid-template-areas:
+    "sidebar topbar"
+    "sidebar main";
+}
+
+/* SIDEBAR */
+.sidebar{grid-area:sidebar;background:var(--sidebar-bg);color:var(--sidebar-text);}
+.sidebar .brand{height:64px;padding:0 1rem;border-bottom:1px solid rgba(255,255,255,.06);}
+.sidebar .brand .btn{color:var(--sidebar-text)}
+.sidebar .profile{padding:1.25rem 1rem;border-bottom:1px solid rgba(255,255,255,.06)}
+.avatar{
+  width:72px;height:72px;border-radius:50%;
+  background:linear-gradient(145deg,#fbbf24,#ef4444);
+  display:grid;place-items:center;color:white;font-size:2rem;font-weight:700;
+  box-shadow:0 8px 24px rgba(0,0,0,.35);
+}
+.sidebar a{color:var(--sidebar-text);text-decoration:none}
+.sidebar .nav-link{color:var(--sidebar-text);opacity:.9;border-radius:.75rem;padding:.6rem 0.85rem}
+.sidebar .nav-link:hover{background:var(--sidebar-bg-hover);opacity:1}
+.sidebar .nav-link .bi{margin-right:.5rem}
+.sidebar .nav .collapse .nav-link{padding-left:2.3rem;opacity:.85}
+.sidebar small{color:var(--sidebar-muted)}
+
+/* TOPBAR */
+.topbar{grid-area:topbar;background:#ffffff;border-bottom:1px solid #e5e7eb;position:sticky;top:0;z-index:10}
+.topbar .search-input{max-width:380px}
+
+/* MAIN */
+.main{
+  grid-area:main;
+  padding:1.25rem;
+}
+
+/* CARDS A LA DERECHA */
+.cards-container {
+  display: flex;
+  justify-content: center;
+  margin-top: 2rem;
+}
+.card-group {
+  width: 60%;
+}
+
+.card-img-top {
+  height: 100px;
+  width: 120px;
+  object-fit: cover;
+}
+
+
+
+
+/* EFECTO DE EXPANSIÓN EN HOVER */
+.card {
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+.card:hover {
+  transform: scale(1.05);
+  box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+  z-index: 10;
+}
+
+/* RESPONSIVE */
+@media (max-width: 992px){
+  .layout{grid-template-columns:0 1fr}
+  .sidebar{position:fixed;inset:0 auto 0 0;width:260px;transform:translateX(-100%);transition:transform .25s ease}
+  .sidebar.show{transform:none}
+  .card-group {width:100%;}
+  .cards-container {justify-content:center;}
+}
+</style>
+</head>
+
+<body>
+<div class="layout">
+  <!-- Sidebar -->
+  <aside id="sidebar" class="sidebar d-flex flex-column">
+    <div class="brand d-flex align-items-center justify-content-between">
+      <a class="d-flex align-items-center text-decoration-none" href="#">
+        <i class="bi bi-box-seam fs-4 me-2"></i>
+        <span class="fw-semibold">Gestor de Inventario</span>
+      </a>
+      <button class="btn btn-sm d-lg-none" id="closeSidebar" aria-label="Cerrar menú"><i class="bi bi-x-lg"></i></button>
+    </div>
+
+    <div class="profile text-center">
+      <div class="mx-auto avatar mb-2">A</div>
+      <div class="fw-semibold">Administrador</div>
+      <small>Administrador</small>
+    </div>
+
+
+    <nav class="flex-grow-1 p-2">
+      <div class="px-2 text-uppercase small mb-2" style="color:var(--sidebar-muted)">Menú</div>
+      <a class="nav-link" href="{% url 'main' %}"><i class="bi bi-speedometer2 me-2"></i>Dashboard</a>
+        <ul id="sidebarMenu" class="nav flex-column gap-1"> <!-- 👈 id para el acordeón -->
+        <li class="nav-item">
+            <a class="nav-link d-flex align-items-center" data-bs-toggle="collapse" href="#admMenu"
+            role="button" aria-expanded="false" aria-controls="admMenu">
+            <i class="bi bi-gear me-2"></i>
+            <span>Administración</span>
+            <i class="bi bi-chevron-down ms-auto chevron"></i>
+            </a>
+
+            <!-- Submenú -->
+            <div class="collapse" id="admMenu" data-bs-parent="#sidebarMenu">
+            <a class="nav-link" href="{% url 'registrarProducto' %}"><i class="bi bi-box me-2"></i>Productos</a>
+            <a class="nav-link" href="{% url 'historial' %}"><i class="bi bi-tags me-2"></i>Historial</a>
+            <a class="nav-link" href="{% url 'proveedores' %}"><i class="bi bi-building me-2"></i>Proveedores</a>
+            <a class="nav-link" href="{% url 'kardex' %}"><i class="bi bi-clipboard-data me-2"></i>Kardex</a>
+            <a class="nav-link" href="{% url 'empleados' %}"><i class="bi bi-people me-2"></i>Empleados</a>
+            <a class="nav-link" href="{% url 'reportes' %}"><i class="bi bi-bar-chart-line me-2"></i>Reportes</a>
+            </div>
+        </li>
+        <!-- Puedes dejar otros ítems aquí -->
+         <a class="nav-link" href="{% url 'login' %}"><i class="bi bi-speedometer2 me-2"></i>Logout</a>
+        
+        </ul>
+
+    </nav>
+  </aside>
+
+
+     <!-- ====== Personal (reemplazo de las cards) ====== -->
+<section class="container-fluid mt-3" id="reportes">
+  <!-- Encabezado: título, botón + y buscador -->
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <h3 class="mb-0">Reportes</h3>
+
+    <div class="d-flex align-items-center gap-3">
+      <!-- Botón + -->
+            <a class="btn btn-light rounded-circle shadow-sm d-flex align-items-center justify-content-center"
+            style="width:48px;height:48px;border:1px solid rgba(0,0,0,.08);"
+            data-bs-toggle="modal" data-bs-target="#modalNuevoPersonal"
+            aria-label="Generar reporte">
+            <i class="bi bi-plus-lg fs-5"></i>
+            </a>
+
+
+    </div>
+  </div>
+
+  
+  <!-- Paginación -->
+ 
+<!-- ====== /Personal ====== -->
+
+     
+<div class="table-responsive rounded-3 border" style="border-color:#e0e6ee;">
+  <table class="table align-middle mb-0">
+    <thead>
+      <tr class="text-muted">
+        <th class="ps-4">Archivo</th>
+        <th class="text-nowrap">Fecha</th>
+        <th class="text-end pe-4">Acciones</th>
+      </tr>
+    </thead>
+
+    <tbody class="table-group-divider">
+      {% if archivos %}
+        {% for a in archivos %}
+          <tr>
+            <td class="ps-4">
+              <i class="bi bi-file-earmark-excel me-2 text-success"></i>
+              {{ a.nombre }}
+            </td>
+
+            <td class="text-nowrap">
+              {{ a.fecha|date:"d/m/Y H:i" }}
+            </td>
+
+            <td class="text-end pe-4">
+              <a class="btn btn-sm btn-success"
+                 href="{{ a.url }}"
+                 download
+                 title="Descargar {{ a.nombre }}">
+                <i class="bi bi-download me-1"></i>Descargar
+              </a>
+            </td>
+          </tr>
+        {% endfor %}
+      {% else %}
+        <tr>
+          <td colspan="3" class="ps-4 text-muted">
+            No hay reportes generados aún.
+          </td>
+        </tr>
+      {% endif %}
+    </tbody>
+  </table>
+</div>
+ <div class="d-flex justify-content-center align-items-center gap-2 mt-3">
+    <button type="button" class="btn btn-secondary border-0">
+      <i class="bi bi-grid-3x3-gap"></i>
+    </button>
+    <button type="button" class="btn btn-secondary border-0">
+      <i class="bi bi-chevron-left"></i>
+    </button>
+    <span class="mx-2 text-muted">1&nbsp; de&nbsp; 1</span>
+    <button type="button" class="btn btn-secondary border-0">
+      <i class="bi bi-chevron-right"></i>
+    </button>
+  </div>
+</section>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+<div class="modal fade" id="modalNuevoPersonal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content border-0 rounded-4" style="background:#e9eef5;">
+      <div class="modal-header border-0">
+        <h5 class="modal-title fw-bold">Generar Reporte</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+
+      <div class="modal-body pt-0">
+        <form method="post" action="{% url 'generar_reporte' %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-primary btn-lg px-4 rounded-4">
+                <i class="bi bi-save me-2"></i>Generar
+            </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+</html>
