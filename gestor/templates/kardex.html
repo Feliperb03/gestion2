@@ -213,7 +213,7 @@ body{background:#f5f6fa;}
                 <div class="list-group-item d-flex justify-content-between align-items-start {% if e.tipo == 'entrada' %}kardex-item-entrada{% elif e.tipo == 'salida' %}kardex-item-salida{% endif %}">
                   <div>
                     <div class="fw-bold">{{ e.get_tipo_display }} — {{ e.producto.nombre }}</div>
-                    <div class="small text-muted">{{ e.motivo }} • {{ e.fecha }}</div>
+                    <div class="small text-muted">{{ e.motivo }}{% if e.numero_factura %} • Factura: {{ e.numero_factura }}{% endif %} • {{ e.fecha }}</div>
                   </div>
                   <div class="text-end">
                     <div>Cantidad: <strong>{{ e.cantidad }}</strong></div>
@@ -265,12 +265,20 @@ body{background:#f5f6fa;}
           <input id="entradaProductoId" type="hidden" value="">
         </div>
 
+        <!-- Número de factura -->
+        <div class="mb-3">
+          <label class="form-label small fw-semibold">
+            <i class="bi bi-receipt me-1"></i> Número de factura
+          </label>
+          <input id="entradaFactura" type="text" class="form-control border-0 border-bottom border-2" placeholder="Nº factura">
+        </div>
+
         <!-- Motivo (estilo subrayado) -->
         <div class="mb-4">
           <label class="form-label small fw-semibold">
             <i class="bi bi-card-text me-1"></i> Motivo
           </label>
-          <input id="entradaMotivo" type="text" class="form-control border-0 border-bottom border-2" placeholder="Opcional">
+          <input id="entradaMotivo" type="text" class="form-control border-0 border-bottom border-2" placeholder="Compra, ajuste…">
         </div>
 
         <button id="entradaGuardar" class="btn btn-primary btn-lg px-4 rounded-4 w-auto">
@@ -320,7 +328,15 @@ body{background:#f5f6fa;}
           <label class="form-label small fw-semibold">
             <i class="bi bi-card-text me-1"></i> Motivo
           </label>
-          <input id="salidaMotivo" type="text" class="form-control border-0 border-bottom border-2" placeholder="Venta, merma, ajuste…">
+          <input id="salidaMotivo" type="text" class="form-control border-0 border-bottom border-2" placeholder="Salida, merma, ajuste…">
+        </div>
+
+        <!-- Número de factura -->
+        <div class="mb-3">
+          <label class="form-label small fw-semibold">
+            <i class="bi bi-receipt me-1"></i> Número de factura
+          </label>
+          <input id="salidaFactura" type="text" class="form-control border-0 border-bottom border-2" placeholder="Nº factura">
         </div>
 
         <button id="salidaGuardar" class="btn btn-primary btn-lg px-4 rounded-4">
@@ -426,6 +442,7 @@ async function registrarMovimiento(tipo) {
   const productoId = document.getElementById(tipo === 'entrada' ? 'entradaProductoId' : 'salidaProductoId').value;
   const cantidad = document.getElementById(tipo === 'entrada' ? 'entradaCantidad' : 'salidaCantidad').value;
   const motivo = document.getElementById(tipo === 'entrada' ? 'entradaMotivo' : 'salidaMotivo').value || '';
+  const numero_factura = document.getElementById(tipo === 'entrada' ? 'entradaFactura' : 'salidaFactura').value || '';
   if (!productoId || !cantidad || Number(cantidad) <= 0) {
     showAlert('Selecciona un producto y una cantidad válida', 'danger');
     return;
@@ -444,6 +461,7 @@ async function registrarMovimiento(tipo) {
   body.append('tipo', tipo);
   body.append('cantidad', cantidad);
   body.append('motivo', motivo);
+  body.append('numero_factura', numero_factura);
 
   const resp = await fetch('/Kardex/registrar', {
     method: 'POST',
@@ -468,7 +486,7 @@ async function registrarMovimiento(tipo) {
   const list = document.getElementById('kardexLista');
   const it = document.createElement('div');
   it.className = 'list-group-item d-flex justify-content-between align-items-start ' + (data.entry.tipo === 'entrada' ? 'kardex-item-entrada' : 'kardex-item-salida');
-  it.innerHTML = `<div><div class="fw-bold">${data.entry.tipo} — ${data.entry.producto_nombre}</div><div class="small text-muted">${data.entry.motivo} • ${data.entry.fecha}</div></div><div class="text-end"><div>Cantidad: <strong>${data.entry.cantidad}</strong></div><div>Stock: <strong>${data.entry.stock_after}</strong></div><div>Stock mínimo: <strong>${data.entry.stock_minimo}</strong></div></div>`;
+  it.innerHTML = `<div><div class="fw-bold">${data.entry.tipo} — ${data.entry.producto_nombre}</div><div class="small text-muted">${data.entry.motivo}${data.entry.numero_factura? ' • Factura: ' + data.entry.numero_factura : ''} • ${data.entry.fecha}</div></div><div class="text-end"><div>Cantidad: <strong>${data.entry.cantidad}</strong></div><div>Stock: <strong>${data.entry.stock_after}</strong></div><div>Stock mínimo: <strong>${data.entry.stock_minimo}</strong></div></div>`;
   if (list.firstChild) list.insertBefore(it, list.firstChild);
   else list.appendChild(it);
 

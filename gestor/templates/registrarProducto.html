@@ -237,7 +237,6 @@ body{background:#f5f6fa;}
                               data-nombre="{{ p.nombre|default:''|escape }}"
                               data-codigo_barras="{{ p.codigo_barras|default:''|escape }}"
                               data-codigo_interno="{{ p.codigo_interno|default:''|escape }}"
-                              data-cantidad="{{ p.cantidad }}"
                               data-stock_minimo="{{ p.stock_minimo }}"
                               data-precio="{{ p.precio }}"
                               data-precio_compra="{{ p.precio_compra|default_if_none:'' }}"
@@ -781,7 +780,6 @@ body{background:#f5f6fa;}
           nombre: read('nombre') || '',
           codigo_barras: read('codigo_barras') || '',
           codigo_interno: read('codigo_interno') || '',
-          cantidad: read('cantidad') ? parseInt(read('cantidad'),10) : 0,
           stock_minimo: read('stock_minimo') ? parseInt(read('stock_minimo'),10) : 0,
           precio: read('precio') ? parseInt(read('precio'),10) : '',
           precio_compra: read('precio_compra') ? parseInt(read('precio_compra'),10) : '',
@@ -795,7 +793,6 @@ body{background:#f5f6fa;}
         setIfExists('nombre', dataObj.nombre);
         setIfExists('codigo_barras', dataObj.codigo_barras);
         setIfExists('codigo_interno', dataObj.codigo_interno);
-        setIfExists('cantidad', dataObj.cantidad);
         setIfExists('stock_minimo', dataObj.stock_minimo);
         setIfExists('precio', dataObj.precio);
         setIfExists('precio_compra', dataObj.precio_compra);

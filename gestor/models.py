@@ -92,6 +92,7 @@ class KardexEntry(models.Model):
     tipo = models.CharField(max_length=10, choices=TIPO_CHOICES)
     cantidad = models.PositiveIntegerField()
     motivo = models.CharField(max_length=200, blank=True)
+    numero_factura = models.CharField(max_length=100, blank=True)
     fecha = models.DateTimeField(auto_now_add=True)
     stock_after = models.IntegerField()
 

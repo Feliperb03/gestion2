@@ -9,6 +9,9 @@ from .forms import ProveedorForm
 from .models import Producto, Proveedor, Marca, Categoria, KardexEntry
 from django.db.models import F, Sum
 from django.http import JsonResponse
+from django.http import HttpResponse
+from django.template.loader import render_to_string
+from io import BytesIO
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
 
@@ -35,9 +38,15 @@ def mostrarRegistrarProducto(request):
     next_codigo_interno = str(last_id + 1).zfill(6)
 
     if request.method == 'POST':
-        form = ProductoForm(request.POST)
+        data = request.POST.copy()
+        if 'cantidad' in data:
+            data.pop('cantidad')
+        form = ProductoForm(data)
         if form.is_valid():
-            form.save()
+            producto = form.save(commit=False)
+            if not getattr(producto, 'cantidad', None):
+                producto.cantidad = 0
+            producto.save()
             messages.success(request, 'Producto añadido con éxito.')
             return redirect('registrarProducto')
         else:
@@ -95,6 +104,7 @@ def kardex_registrar(request):
     except ValueError:
         return JsonResponse({'error': 'Cantidad inválida'}, status=400)
     motivo = request.POST.get('motivo', '')[:200]
+    numero_factura = request.POST.get('numero_factura', '')[:100]
 
     if not producto_id or tipo not in (KardexEntry.TIPO_ENTRADA, KardexEntry.TIPO_SALIDA):
         return JsonResponse({'error': 'Parámetros incompletos'}, status=400)
@@ -118,6 +128,7 @@ def kardex_registrar(request):
         tipo=tipo,
         cantidad=cantidad,
         motivo=motivo,
+        numero_factura=numero_factura,
         stock_after=producto.cantidad,
     )
 
@@ -130,6 +141,7 @@ def kardex_registrar(request):
             'tipo': entry.tipo,
             'cantidad': entry.cantidad,
             'motivo': entry.motivo,
+            'numero_factura': entry.numero_factura,
             'fecha': entry.fecha.strftime('%Y-%m-%d %H:%M:%S'),
             'stock_after': entry.stock_after,
             'stock_minimo': producto.stock_minimo,
@@ -230,48 +242,329 @@ def proveedor_eliminar(request, pk):
         return redirect('proveedores')
     return render(request, 'confirmar_eliminar_proveedor.html', {'proveedor': proveedor})
 def generar_reporte_view(request):
-    if request.method == 'POST':
-        mensaje, url_publica = generarReporte()
-        messages.success(request, f"{mensaje} → {url_publica}")
-    return redirect('reportes')  # vuelve a la lista
+    """
+    Procesa el formulario de reportes y muestra la tabla de resultados
+    en la misma página.
+    """
+    if request.method != 'POST':
+        return redirect('reportes')
+
+    tipo = request.POST.get('tipo')
+    fecha_inicio = request.POST.get('fecha_inicio')
+    fecha_fin = request.POST.get('fecha_fin')
+    categoria_id = request.POST.get('categoria') or None
+
+    # preparar contexto
+    categorias = Categoria.objects.all().order_by('nombre')
+    report_rows = []
+
+    # parsear fechas
+    from datetime import datetime
+    start_date = None
+    end_date = None
+    try:
+        if fecha_inicio:
+            start_date = datetime.strptime(fecha_inicio, '%Y-%m-%d').date()
+        if fecha_fin:
+            end_date = datetime.strptime(fecha_fin, '%Y-%m-%d').date()
+    except Exception:
+        start_date = end_date = None
+
+    # filtro por categoria: obtener nombre si existe
+    categoria_nombre = None
+    if categoria_id:
+        try:
+            cat = Categoria.objects.get(pk=int(categoria_id))
+            categoria_nombre = cat.nombre
+        except Exception:
+            categoria_nombre = None
+
+    # Helper para formatear precios a '9.990 CLP'
+    def fmt_price(p):
+        try:
+            if p is None:
+                return ''
+            s = f"{int(p):,}"
+            # usar punto como separador de miles
+            return s.replace(',', '.') + ' CLP'
+        except Exception:
+            return p
+
+    # Tipo 'stock' -> snapshot de productos
+    if tipo == 'stock':
+        qs = Producto.objects.all()
+        if categoria_nombre:
+            qs = qs.filter(categoria=categoria_nombre)
+        qs = qs.order_by('-cantidad')
+        for p in qs:
+            report_rows.append({
+                'categoria': getattr(p, 'categoria', '') or '',
+                'producto': p.nombre,
+                'quien': '',
+                'precio_venta': getattr(p, 'precio', None),
+                'precio_compra': getattr(p, 'precio_compra', None),
+                'precio_venta_fmt': fmt_price(getattr(p, 'precio', None)),
+                'precio_compra_fmt': fmt_price(getattr(p, 'precio_compra', None)),
+                'cantidad': '',
+                'stock': p.cantidad,
+                'stock_minimo': p.stock_minimo,
+                'fecha_hora': ''
+            })
+
+    # Tipo 'todo' -> listar entradas y salidas
+    elif tipo == 'todo':
+        entries = KardexEntry.objects.select_related('producto').filter(tipo__in=[KardexEntry.TIPO_ENTRADA, KardexEntry.TIPO_SALIDA])
+        if categoria_nombre:
+            entries = entries.filter(producto__categoria=categoria_nombre)
+        if start_date:
+            entries = entries.filter(fecha__date__gte=start_date)
+        if end_date:
+            entries = entries.filter(fecha__date__lte=end_date)
+        entries = entries.order_by('fecha')
+        for e in entries:
+            prod = e.producto
+            report_rows.append({
+                'categoria': getattr(prod, 'categoria', '') or '',
+                'producto': prod.nombre if prod else '',
+                'quien': '',
+                'precio_venta': getattr(prod, 'precio', None) if prod else None,
+                'precio_compra': getattr(prod, 'precio_compra', None) if prod else None,
+                'precio_venta_fmt': fmt_price(getattr(prod, 'precio', None) if prod else None),
+                'precio_compra_fmt': fmt_price(getattr(prod, 'precio_compra', None) if prod else None),
+                # cantidad unificada: siempre exponer la cantidad del movimiento
+                'cantidad': e.cantidad,
+                'stock': e.stock_after if getattr(e, 'stock_after', None) is not None else (prod.cantidad if prod else None),
+                'stock_minimo': getattr(prod, 'stock_minimo', None) if prod else None,
+                'fecha_hora': e.fecha.strftime('%Y-%m-%d %H:%M:%S'),
+                'movimiento': 'Entrada' if e.tipo == KardexEntry.TIPO_ENTRADA else 'Salida'
+            })
+
+    # Tipo 'salidas' o 'entradas' -> filas del kardex
+    elif tipo in ('salidas', 'entradas', KardexEntry.TIPO_SALIDA, KardexEntry.TIPO_ENTRADA):
+        if tipo == 'salidas':
+            filtro = KardexEntry.TIPO_SALIDA
+        elif tipo == 'entradas':
+            filtro = KardexEntry.TIPO_ENTRADA
+        else:
+            filtro = tipo
+        entries = KardexEntry.objects.select_related('producto').filter(tipo=filtro)
+        if categoria_nombre:
+            # Producto.categoria puede ser texto; filtrar por igualdad
+            entries = entries.filter(producto__categoria=categoria_nombre)
+        if start_date:
+            entries = entries.filter(fecha__date__gte=start_date)
+        if end_date:
+            entries = entries.filter(fecha__date__lte=end_date)
+
+        entries = entries.order_by('fecha')
+        for e in entries:
+            prod = e.producto
+            report_rows.append({
+                'categoria': getattr(prod, 'categoria', '') or '',
+                'producto': prod.nombre if prod else '',
+                'quien': '',
+                'precio_venta': getattr(prod, 'precio', None) if prod else None,
+                'precio_compra': getattr(prod, 'precio_compra', None) if prod else None,
+                'precio_venta_fmt': fmt_price(getattr(prod, 'precio', None) if prod else None),
+                'precio_compra_fmt': fmt_price(getattr(prod, 'precio_compra', None) if prod else None),
+                # cantidad unificada: siempre exponer la cantidad del movimiento
+                'cantidad': e.cantidad,
+                'stock': e.stock_after if getattr(e, 'stock_after', None) is not None else (prod.cantidad if prod else None),
+                'stock_minimo': getattr(prod, 'stock_minimo', None) if prod else None,
+                'fecha_hora': e.fecha.strftime('%Y-%m-%d %H:%M:%S'),
+                'movimiento': 'Entrada' if e.tipo == KardexEntry.TIPO_ENTRADA else 'Salida'
+            })
+
+    else:
+        messages.error(request, 'Tipo de reporte no válido')
+
+    return render(request, 'reportes.html', {
+        'categories': categorias,
+        'report_rows': report_rows,
+        'selected_tipo': tipo,
+        'selected_categoria': int(categoria_id) if categoria_id else None,
+        'fecha_inicio': fecha_inicio,
+        'fecha_fin': fecha_fin,
+    })
+
+
+def generar_reporte_pdf(request):
+    """
+    Genera un PDF con los mismos resultados del reporte.
+    Acepta GET o POST con los mismos parámetros: tipo, fecha_inicio, fecha_fin, categoria.
+    Intenta usar WeasyPrint si está instalado; si no, intenta xhtml2pdf.
+    """
+    # aceptar tanto POST como GET
+    data = request.POST if request.method == 'POST' else request.GET
+    tipo = data.get('tipo')
+    fecha_inicio = data.get('fecha_inicio')
+    fecha_fin = data.get('fecha_fin')
+    categoria_id = data.get('categoria') or None
+
+    # Reuse the existing report-building logic by calling generar_reporte_view-like code
+    # (duplicate minimal part for reliability)
+    categorias = Categoria.objects.all().order_by('nombre')
+    report_rows = []
+    from datetime import datetime
+    start_date = None
+    end_date = None
+    try:
+        if fecha_inicio:
+            start_date = datetime.strptime(fecha_inicio, '%Y-%m-%d').date()
+        if fecha_fin:
+            end_date = datetime.strptime(fecha_fin, '%Y-%m-%d').date()
+    except Exception:
+        start_date = end_date = None
+
+    categoria_nombre = None
+    if categoria_id:
+        try:
+            cat = Categoria.objects.get(pk=int(categoria_id))
+            categoria_nombre = cat.nombre
+        except Exception:
+            categoria_nombre = None
+
+    def fmt_price(p):
+        try:
+            if p is None:
+                return ''
+            s = f"{int(p):,}"
+            return s.replace(',', '.') + ' CLP'
+        except Exception:
+            return p
+
+    if tipo == 'stock':
+        qs = Producto.objects.all()
+        if categoria_nombre:
+            qs = qs.filter(categoria=categoria_nombre)
+        qs = qs.order_by('-cantidad')
+        for p in qs:
+            report_rows.append({
+                'categoria': getattr(p, 'categoria', '') or '',
+                'producto': p.nombre,
+                'quien': '',
+                'precio_venta_fmt': fmt_price(getattr(p, 'precio', None)),
+                'precio_compra_fmt': fmt_price(getattr(p, 'precio_compra', None)),
+                'cantidad': '',
+                'stock': p.cantidad,
+                'stock_minimo': p.stock_minimo,
+                'fecha_hora': ''
+            })
+    elif tipo == 'todo':
+        entries = KardexEntry.objects.select_related('producto').filter(tipo__in=[KardexEntry.TIPO_ENTRADA, KardexEntry.TIPO_SALIDA])
+        if categoria_nombre:
+            entries = entries.filter(producto__categoria=categoria_nombre)
+        if start_date:
+            entries = entries.filter(fecha__date__gte=start_date)
+        if end_date:
+            entries = entries.filter(fecha__date__lte=end_date)
+        entries = entries.order_by('fecha')
+        for e in entries:
+            prod = e.producto
+            report_rows.append({
+                'categoria': getattr(prod, 'categoria', '') or '',
+                'producto': prod.nombre if prod else '',
+                'quien': '',
+                'precio_venta_fmt': fmt_price(getattr(prod, 'precio', None) if prod else None),
+                'precio_compra_fmt': fmt_price(getattr(prod, 'precio_compra', None) if prod else None),
+                'cantidad': e.cantidad,
+                'stock': e.stock_after if getattr(e, 'stock_after', None) is not None else (prod.cantidad if prod else None),
+                'stock_minimo': getattr(prod, 'stock_minimo', None) if prod else None,
+                'fecha_hora': e.fecha.strftime('%Y-%m-%d %H:%M:%S'),
+                'movimiento': 'Entrada' if e.tipo == KardexEntry.TIPO_ENTRADA else 'Salida'
+            })
+    elif tipo in ('salidas', 'entradas', KardexEntry.TIPO_SALIDA, KardexEntry.TIPO_ENTRADA):
+        if tipo == 'salidas':
+            filtro = KardexEntry.TIPO_SALIDA
+        elif tipo == 'entradas':
+            filtro = KardexEntry.TIPO_ENTRADA
+        else:
+            filtro = tipo
+        entries = KardexEntry.objects.select_related('producto').filter(tipo=filtro)
+        if categoria_nombre:
+            entries = entries.filter(producto__categoria=categoria_nombre)
+        if start_date:
+            entries = entries.filter(fecha__date__gte=start_date)
+        if end_date:
+            entries = entries.filter(fecha__date__lte=end_date)
+        entries = entries.order_by('fecha')
+        for e in entries:
+            prod = e.producto
+            report_rows.append({
+                'categoria': getattr(prod, 'categoria', '') or '',
+                'producto': prod.nombre if prod else '',
+                'quien': '',
+                'precio_venta_fmt': fmt_price(getattr(prod, 'precio', None) if prod else None),
+                'precio_compra_fmt': fmt_price(getattr(prod, 'precio_compra', None) if prod else None),
+                'cantidad': e.cantidad,
+                'stock': e.stock_after if getattr(e, 'stock_after', None) is not None else (prod.cantidad if prod else None),
+                'stock_minimo': getattr(prod, 'stock_minimo', None) if prod else None,
+                'fecha_hora': e.fecha.strftime('%Y-%m-%d %H:%M:%S'),
+                'movimiento': 'Entrada' if e.tipo == KardexEntry.TIPO_ENTRADA else 'Salida'
+            })
+    else:
+        # tipo no válido -> retornar mensaje
+        return HttpResponse('Tipo de reporte no válido', status=400)
+
+    # Render HTML for PDF
+    context = {
+        'report_rows': report_rows,
+        'selected_tipo': tipo,
+        'fecha_inicio': fecha_inicio,
+        'fecha_fin': fecha_fin,
+    }
+    html = render_to_string('reportes_pdf.html', context)
+
+    # Intentar generar PDF con WeasyPrint, fallback a xhtml2pdf
+    try:
+        from weasyprint import HTML
+        pdf = HTML(string=html).write_pdf()
+        response = HttpResponse(pdf, content_type='application/pdf')
+        response['Content-Disposition'] = 'attachment; filename="reporte.pdf"'
+        return response
+    except Exception:
+        try:
+            from xhtml2pdf import pisa
+            buffer = BytesIO()
+            pisa_status = pisa.CreatePDF(html, dest=buffer)
+            if pisa_status.err:
+                return HttpResponse('Error generando PDF', status=500)
+            response = HttpResponse(buffer.getvalue(), content_type='application/pdf')
+            response['Content-Disposition'] = 'attachment; filename="reporte.pdf"'
+            return response
+        except Exception:
+            return HttpResponse('No se pudo generar PDF. Instala WeasyPrint o xhtml2pdf.', status=500)
 
 def mostrarReportes(request):
-    carpeta = Path(settings.MEDIA_ROOT) / "reportes"
-    carpeta.mkdir(parents=True, exist_ok=True)
+    # Mostrar la página de reportes con la lista de categorías para el formulario
+    categorias = Categoria.objects.all().order_by('nombre')
+    return render(request, 'reportes.html', {'categories': categorias})
 
-    archivos = []
-    for p in sorted(carpeta.glob("*.xlsx"), key=lambda x: x.stat().st_mtime, reverse=True):
-        archivos.append({
-            "nombre": p.name,
-            "url": f"{settings.MEDIA_URL}reportes/{p.name}",
-            "fecha": timezone.datetime.fromtimestamp(p.stat().st_mtime, tz=timezone.get_current_timezone())
-        })
-    return render(request, "reportes.html", {"archivos": archivos})
+
 def registrar_producto_view(request):
+    """
+    Crear un producto: ignorar cualquier 'cantidad' enviado en el formulario
+    para que el stock solo pueda modificarse a través del kardex.
+    """
     if request.method == 'POST':
-        form = ProductoForm(request.POST)
+        # Hacemos una copia mutable del POST y retiramos 'cantidad' si viene
+        data = request.POST.copy()
+        if 'cantidad' in data:
+            data.pop('cantidad')
+
+        form = ProductoForm(data)
         if form.is_valid():
-            form.save()
-            # mensaje según petición del usuario (texto exacto)
+            producto = form.save(commit=False)
+            # Forzar que el stock inicial no se cambie desde aquí (dejar valor por defecto o 0)
+            if not getattr(producto, 'cantidad', None):
+                producto.cantidad = 0
+            producto.save()
             messages.success(request, 'producto guardado con exito')
             return redirect('registrarProducto')
         else:
-            # mensaje de error cuando faltan datos
             messages.error(request, 'faltan datos por rellenar')
     else:
         form = ProductoForm()
-
-    return render(request, "registrarProducto.html", {"form": form})
-def registrar_producto_view(request):
-    if request.method == 'POST':
-        form = ProductoForm(request.POST)
-        if form.is_valid():
-            # Guardamos el producto
-            form.save()
-            # Redirigimos a una página de éxito o listado de productos
-            return redirect('listar_productos')  # Cambia esta URL por la que corresponda
-    else:
-        form = ProductoForm()  # Formulario vacío
 
     return render(request, 'registrarProducto.html', {'form': form})
 
@@ -321,13 +614,14 @@ def producto_editar(request, pk):
     """
     producto = get_object_or_404(Producto, pk=pk)
     if request.method == 'GET':
+        # No devolvemos 'cantidad' en el JSON para evitar que UIs auto-llenadas
+        # permitan editar el stock desde formularios.
         data = {
             'id': producto.id,
             'nombre': producto.nombre,
             'descripcion': producto.descripcion,
             'codigo_barras': producto.codigo_barras,
             'codigo_interno': producto.codigo_interno,
-            'cantidad': producto.cantidad,
             'stock_minimo': producto.stock_minimo,
             'precio': producto.precio,
             'precio_compra': producto.precio_compra,
@@ -340,9 +634,17 @@ def producto_editar(request, pk):
 
     # POST -> actualizar
     if request.method == 'POST':
-        form = ProductoForm(request.POST, instance=producto)
+        # Ignorar 'cantidad' en la actualización: crear copia y eliminar si viene
+        data = request.POST.copy()
+        if 'cantidad' in data:
+            data.pop('cantidad')
+
+        form = ProductoForm(data, instance=producto)
         if form.is_valid():
-            form.save()
+            prod = form.save(commit=False)
+            # Asegurar que no se modifica el stock desde aquí
+            prod.cantidad = producto.cantidad
+            prod.save()
             return JsonResponse({'ok': True}, status=200)
         else:
             # devolver errores de formulario

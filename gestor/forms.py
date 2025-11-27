@@ -14,7 +14,9 @@ class ProductoForm(forms.ModelForm):
     nombre = forms.CharField(required=True)
     codigo_barras = forms.CharField(required=True)
     codigo_interno = forms.CharField(required=True)
-    cantidad = forms.IntegerField(required=True, min_value=0)
+    # 'cantidad' (stock) must not be editable via the product form; stock is
+    # managed exclusively through the kardex. We do not include 'cantidad'
+    # as an input field here so POSTs can't change it.
     stock_minimo = forms.IntegerField(required=True, min_value=0)
     # Precios en CLP: pedimos enteros (sin decimales). Usuario puede escribir '9.990' o '9990'
     precio = forms.IntegerField(required=True, min_value=0)
@@ -41,7 +43,7 @@ class ProductoForm(forms.ModelForm):
         model = Producto
         fields = [
             "nombre", "descripcion", "codigo_barras", "codigo_interno",
-            "cantidad", "stock_minimo", "precio", "precio_compra",
+            "stock_minimo", "precio", "precio_compra",
             "categoria", "marca", "proveedor", "fecha_entrada"
         ]
         widgets = {
