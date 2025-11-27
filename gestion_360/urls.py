@@ -46,6 +46,7 @@ urlpatterns = [
     path('productos/<int:pk>/eliminar/', views.producto_eliminar, name='producto_eliminar'),
     path('Kardex/buscar', views.kardex_buscar, name='kardex_buscar'),
     path('Kardex/registrar', views.kardex_registrar, name='kardex_registrar'),
+    path('Kardex/dashboard', views.mostrarDashboard, name='dashboard'),
     path('reportes/generar/', views.generar_reporte_view, name='generar_reporte'),
     path('password_reset/', 
         auth_views.PasswordResetView.as_view(template_name='registration/password_reset_form.html',

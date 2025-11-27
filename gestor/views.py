@@ -7,6 +7,7 @@ from django.utils import timezone
 from .forms import ProductoForm
 from .forms import ProveedorForm
 from .models import Producto, Proveedor, Marca, Categoria, KardexEntry
+from django.db.models import F, Sum
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
@@ -139,6 +140,51 @@ def mostrarEmpleados(request):
     return render(request, 'empleados.html')
 def mostrarHistorial(request):
     return render(request, 'historial.html')
+def mostrarDashboard(request):
+    # Query productos cuyo stock actual (cantidad) está por debajo del stock mínimo
+    low_stock = Producto.objects.filter(cantidad__lt=F('stock_minimo')).order_by('cantidad')
+
+    # Obtener los productos con menor cantidad salida (suma de 'cantidad' en entradas de tipo 'salida')
+    least_qs = (
+        KardexEntry.objects
+        .filter(tipo=KardexEntry.TIPO_SALIDA)
+        .values('producto__id', 'producto__nombre')
+        .annotate(salidas=Sum('cantidad'))
+        .order_by('salidas')[:3]
+    )
+    least_sold_products = [{'nombre': r['producto__nombre'], 'salidas': r.get('salidas') or 0} for r in least_qs]
+
+    # Top 3 productos con más salidas
+    most_qs = (
+        KardexEntry.objects
+        .filter(tipo=KardexEntry.TIPO_SALIDA)
+        .values('producto__id', 'producto__nombre')
+        .annotate(salidas=Sum('cantidad'))
+        .order_by('-salidas')[:3]
+    )
+    most_sold_products = [{'nombre': r['producto__nombre'], 'salidas': r.get('salidas') or 0} for r in most_qs]
+
+    # Top 3 productos con más entradas
+    entered_qs = (
+        KardexEntry.objects
+        .filter(tipo=KardexEntry.TIPO_ENTRADA)
+        .values('producto__id', 'producto__nombre')
+        .annotate(entradas=Sum('cantidad'))
+        .order_by('-entradas')[:3]
+    )
+    most_entered_products = [{'nombre': r['producto__nombre'], 'entradas': r.get('entradas') or 0} for r in entered_qs]
+
+    # Productos con mayor stock (orden descendente por cantidad)
+    stock_qs = Producto.objects.all().order_by('-cantidad')[:10]
+    most_stock_products = [{'id': p.id, 'nombre': p.nombre, 'cantidad': p.cantidad, 'stock_minimo': p.stock_minimo} for p in stock_qs]
+
+    return render(request, 'dashboard.html', {
+        'low_stock_products': low_stock,
+        'least_sold_products': least_sold_products,
+        'most_sold_products': most_sold_products,
+        'most_entered_products': most_entered_products,
+        'most_stock_products': most_stock_products,
+    })
 def mostrarReportes(request):
     return render(request, 'reportes.html')
 def mostrarProveedores(request):

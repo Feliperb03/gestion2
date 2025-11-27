@@ -207,12 +207,32 @@ body{background:#f5f6fa;}
     <img src="{% static 'imagenes/Reportes.png' %}" class="card-img-top" alt="Reportes">
     <div class="card-body">
       <h5 class="card-title">Reportes</h5>
-      <p class="card-text">Estadísticas de ventas, compras y existencias.</p>
+      <p class="card-text">Detalles de reportes y análisis</p>
       <a href="{% url 'reportes' %}" class="stretched-link" aria-label="Ir a Reportes"></a>
     </div>
   </div>
 </div>
 
+<div class="col d-flex align-items-stretch">
+  <div class="card h-100 w-100 position-relative">
+    <img src="{% static 'imagenes/venta.png' %}" class="card-img-top" alt="Reportes">
+    <div class="card-body">
+      <h5 class="card-title">Proveedores</h5>
+      <p class="card-text">Agrega y gestiona los proveedores y sus detalles</p>
+      <a href="{% url 'proveedores' %}" class="stretched-link" aria-label="Ir a Proveedores"></a>
+    </div>
+  </div>
+</div>
+<div class="col d-flex align-items-stretch">
+  <div class="card h-100 w-100 position-relative">
+    <img src="{% static 'imagenes/venta.png' %}" class="card-img-top" alt="Reportes">
+    <div class="card-body">
+      <h5 class="card-title">Dashboard</h5>
+      <p class="card-text">Estadisticas de ventas, compras y existencias</p>
+      <a href="{% url 'dashboard' %}" class="stretched-link" aria-label="Ir a Dashboard"></a>
+    </div>
+  </div>
+</div>
 </div>
 
   </main>
