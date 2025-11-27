@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Reporte PDF</title>
+  <style>
+    body{ font-family: Arial, Helvetica, sans-serif; font-size:12px; color:#111; }
+    table{ width:100%; border-collapse: collapse; margin-top:10px; }
+    th, td{ border:1px solid #ddd; padding:6px 8px; text-align:left; }
+    th{ background:#f2f2f2; font-weight:700; }
+    .header{ display:flex; justify-content:space-between; align-items:center }
+    .title{ font-size:16px; font-weight:700 }
+    .meta{ font-size:12px; color:#666 }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="title">Reporte</div>
+    <div class="meta">{{ fecha_inicio|default:'' }} - {{ fecha_fin|default:'' }}</div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Categoria</th>
+        <th>Producto</th>
+        <th>Tipo</th>
+        <th>Precio venta</th>
+        <th>Precio compra</th>
+        <th>
+          {% if selected_tipo == 'entradas' or selected_tipo == 'entrada' %}
+            Cantidad entrada
+          {% elif selected_tipo == 'salidas' or selected_tipo == 'salida' %}
+            Cantidad salida
+          {% else %}
+            Cantidad
+          {% endif %}
+        </th>
+        <th>Stock</th>
+        <th>Stock mínimo</th>
+        <th>Fecha y hora</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in report_rows %}
+        <tr>
+          <td>{{ r.categoria }}</td>
+          <td>{{ r.producto }}</td>
+          <td>{% if r.movimiento %}{{ r.movimiento }}{% endif %}</td>
+          <td>{% if r.precio_venta_fmt %}{{ r.precio_venta_fmt }}{% endif %}</td>
+          <td>{% if r.precio_compra_fmt %}{{ r.precio_compra_fmt }}{% endif %}</td>
+          <td>{{ r.cantidad }}</td>
+          <td>{{ r.stock }}</td>
+          <td>{{ r.stock_minimo }}</td>
+          <td>{{ r.fecha_hora }}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</body>
+</html>

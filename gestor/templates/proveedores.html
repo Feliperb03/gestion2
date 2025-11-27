@@ -154,6 +154,133 @@ body{background:#f5f6fa;}
      <!-- ====== Personal (reemplazo de las cards) ====== -->
 <section class="container-fluid mt-3" id="personal">
   <!-- Encabezado: título, botón + y buscador -->
+
+    <!-- Editar proveedor (modal reutiliza el mismo estilo que "Registrar") -->
+    <div class="modal fade" id="modalEditarProveedor" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 rounded-4" style="background:#e9eef5;">
+          <div class="modal-header border-0">
+            <h5 class="modal-title fw-bold">Editar Proveedor</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+          </div>
+          <div class="modal-body pt-0">
+            <form id="formEditarProveedor" method="post" action="">
+              {% csrf_token %}
+              <div class="row g-4">
+                <div class="col-12">
+                  <div class="mb-3">
+                    <label class="form-label small fw-semibold"><i class="bi bi-upc me-1"></i> Rut</label>
+                    <div class="input-group">
+                      <span class="input-group-text bg-none"><i class="bi bi-upc"></i></span>
+                      <input name="rut_pro" type="text" class="form-control" placeholder="00000000-0">
+                    </div>
+                  </div>
+
+                  <div class="mb-3">
+                    <label class="form-label small fw-semibold"><i class="bi bi-person me-1"></i> Nombre</label>
+                    <div class="input-group">
+                      <span class="input-group-text bg-none"><i class="bi bi-person"></i></span>
+                      <input name="nombre_pro" type="text" class="form-control" placeholder="Nombre o Razón Social">
+                    </div>
+                  </div>
+
+                  <div class="mb-3">
+                    <label class="form-label small fw-semibold"><i class="bi bi-telephone me-1"></i> Teléfono</label>
+                    <div class="input-group">
+                      <span class="input-group-text bg-none"><i class="bi bi-telephone"></i></span>
+                      <input name="telefono_pro" type="text" class="form-control" placeholder="+56 9 1111 1111">
+                    </div>
+                  </div>
+
+                  <div class="mb-3">
+                    <label class="form-label small fw-semibold"><i class="bi bi-geo-alt me-1"></i> Domicilio Fiscal</label>
+                    <input name="domicilio_fiscal_pro" type="text" class="form-control" placeholder="Domicilio Fiscal">
+                  </div>
+
+                  <div class="mb-3">
+                    <label class="form-label small fw-semibold"><i class="bi bi-envelope me-1"></i> Correo Electrónico</label>
+                    <input name="correo_pro" type="email" class="form-control" placeholder="correo@empresa.cl">
+                  </div>
+
+                  <div class="mb-3">
+                    <label class="form-label small fw-semibold"><i class="bi bi-house me-1"></i> Dirección</label>
+                    <input name="direccion_pro" type="text" class="form-control" placeholder="Calle, Número, Ciudad">
+                  </div>
+
+                </div>
+              </div>
+              <div class="d-flex justify-content-end mt-3">
+                <button type="submit" class="btn btn-primary btn-lg px-4 rounded-4">
+                  <i class="bi bi-save me-2"></i> Guardar cambios
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal confirmar eliminar -->
+    <div class="modal fade" id="modalEliminarProveedor" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 rounded-4" style="background:#fff;">
+          <div class="modal-header border-0">
+            <h5 class="modal-title fw-bold">Eliminar Proveedor</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+          </div>
+          <div class="modal-body">
+            <p>¿Estás seguro que deseas eliminar al proveedor <strong id="elimNombre">...</strong>?</p>
+            <form id="formEliminarProveedor" method="post" action="">
+              {% csrf_token %}
+              <div class="d-flex justify-content-end gap-2">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" class="btn btn-danger">Eliminar</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Rellenar modal de edición con los datos del proveedor
+      var editarModal = document.getElementById('modalEditarProveedor');
+      if (editarModal) {
+        editarModal.addEventListener('show.bs.modal', function (event) {
+          var button = event.relatedTarget;
+          var id = button.getAttribute('data-id');
+          var rut = button.getAttribute('data-rut') || '';
+          var nombre = button.getAttribute('data-nombre') || '';
+          var telefono = button.getAttribute('data-telefono') || '';
+          var domicilio = button.getAttribute('data-domicilio_fiscal') || '';
+          var correo = button.getAttribute('data-correo') || '';
+          var direccion = button.getAttribute('data-direccion') || '';
+
+          var form = document.getElementById('formEditarProveedor');
+          // set action to the edit URL for this proveedor
+          form.action = '/proveedores/' + id + '/editar/';
+          form.querySelector('input[name="rut_pro"]').value = rut;
+          form.querySelector('input[name="nombre_pro"]').value = nombre;
+          form.querySelector('input[name="telefono_pro"]').value = telefono;
+          form.querySelector('input[name="domicilio_fiscal_pro"]').value = domicilio;
+          form.querySelector('input[name="correo_pro"]').value = correo;
+          form.querySelector('input[name="direccion_pro"]').value = direccion;
+        });
+      }
+
+      // Rellenar modal de eliminación y poner la acción del formulario
+      var elimModal = document.getElementById('modalEliminarProveedor');
+      if (elimModal) {
+        elimModal.addEventListener('show.bs.modal', function (event) {
+          var button = event.relatedTarget;
+          var id = button.getAttribute('data-id');
+          var nombre = button.getAttribute('data-nombre') || '';
+          document.getElementById('elimNombre').textContent = nombre;
+          var form = document.getElementById('formEliminarProveedor');
+          form.action = '/proveedores/' + id + '/eliminar/';
+        });
+      }
+    </script>
   <div class="d-flex align-items-center justify-content-between mb-3">
     <h3 class="mb-0">Proveedores</h3>
 
@@ -188,41 +315,43 @@ body{background:#f5f6fa;}
     </thead>
 
     <tbody class="table-group-divider">
+      {% if proveedores %}
+        {% for p in proveedores %}
+        <tr {% if forloop.counter0|divisibleby:2 %}class="table-secondary"{% endif %}>
+          <td class="ps-4">{{ p.rut_pro }}</td>
+          <td>{{ p.nombre_pro }}</td>
+          <td>{{ p.telefono_pro }}</td>
+          <td>{{ p.domicilio_fiscal_pro }}</td>
+          <td>{{ p.correo_pro }}</td>
+          <td class="text-end pe-4">
+            <!-- Editar: abre modal y pasa datos por data-attributes -->
+            <button type="button" class="btn btn-link text-secondary me-3 p-0" title="Editar"
+                    data-bs-toggle="modal" data-bs-target="#modalEditarProveedor"
+                    data-id="{{ p.id }}"
+                    data-rut="{{ p.rut_pro }}"
+                    data-nombre="{{ p.nombre_pro }}"
+                    data-telefono="{{ p.telefono_pro }}"
+                    data-domicilio_fiscal="{{ p.domicilio_fiscal_pro }}"
+                    data-correo="{{ p.correo_pro }}"
+                    data-direccion="{{ p.direccion_pro }}">
+              <i class="bi bi-pencil-square"></i>
+            </button>
 
-      <!-- Ejemplo 1 -->
-      <tr>
-        <td class="ps-4">11.111.111-1</td>
-        <td>Administrador General</td>
-        <td>+56 9 1234 5678</td>
-        <td>Casa Matriz, Santiago</td>
-        <td>admin@empresa.com</td>
-        <td class="text-end pe-4">
-          <a href="/Empleados/1/editar" class="text-secondary me-3" title="Editar">
-            <i class="bi bi-pencil-square"></i>
-          </a>
-          <a href="/Empleados/1/eliminar" class="text-danger" title="Eliminar">
-            <i class="bi bi-trash"></i>
-          </a>
-        </td>
-      </tr>
-
-      <!-- Ejemplo 2 -->
-      <tr class="table-secondary">
-        <td class="ps-4">22.222.222-2</td>
-        <td>Nicolás Pérez</td>
-        <td>+56 9 8765 4321</td>
-        <td>Av. Los Pinos 345, Maipú</td>
-        <td>nperez@empresa.com</td>
-        <td class="text-end pe-4">
-          <a href="/Empleados/2/editar" class="text-secondary me-3" title="Editar">
-            <i class="bi bi-pencil-square"></i>
-          </a>
-          <a href="/Empleados/2/eliminar" class="text-danger" title="Eliminar">
-            <i class="bi bi-trash"></i>
-          </a>
-        </td>
-      </tr>
-
+            <!-- Eliminar: abre modal de confirmación -->
+            <button type="button" class="btn btn-link text-danger p-0" title="Eliminar"
+                    data-bs-toggle="modal" data-bs-target="#modalEliminarProveedor"
+                    data-id="{{ p.id }}"
+                    data-nombre="{{ p.nombre_pro }}">
+              <i class="bi bi-trash"></i>
+            </button>
+          </td>
+        </tr>
+        {% endfor %}
+      {% else %}
+        <tr>
+          <td colspan="6" class="text-center text-muted py-4">No hay proveedores registrados.</td>
+        </tr>
+      {% endif %}
     </tbody>
   </table>
 </div>
@@ -258,7 +387,11 @@ body{background:#f5f6fa;}
       </div>
 
       <div class="modal-body pt-0">
-        <form>
+        <form method="post" action="">
+          {% csrf_token %}
+          {% if form.non_field_errors %}
+            <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+          {% endif %}
 
           <div class="row g-4">
             <div class="col-12">
@@ -268,8 +401,9 @@ body{background:#f5f6fa;}
                 <label class="form-label small fw-semibold"><i class="bi bi-upc me-1"></i> Rut</label>
                 <div class="input-group">
                   <span class="input-group-text bg-none"><i class="bi bi-upc"></i></span>
-                  <input type="text" class="form-control" placeholder="00000000-0">
+                  {{ form.rut_pro }}
                 </div>
+                {{ form.rut_pro.errors }}
               </div>
 
               <!-- Nombre -->
@@ -277,8 +411,9 @@ body{background:#f5f6fa;}
                 <label class="form-label small fw-semibold"><i class="bi bi-person me-1"></i> Nombre</label>
                 <div class="input-group">
                   <span class="input-group-text bg-none"><i class="bi bi-person"></i></span>
-                  <input type="text" class="form-control" placeholder="Nombre y apellido">
+                  {{ form.nombre_pro }}
                 </div>
+                {{ form.nombre_pro.errors }}
               </div>
 
               <!-- Teléfono -->
@@ -286,26 +421,30 @@ body{background:#f5f6fa;}
                 <label class="form-label small fw-semibold"><i class="bi bi-telephone me-1"></i> Teléfono</label>
                 <div class="input-group">
                   <span class="input-group-text bg-none"><i class="bi bi-telephone"></i></span>
-                  <input type="text" class="form-control" placeholder="+56 9 1111 1111">
+                  {{ form.telefono_pro }}
                 </div>
+                {{ form.telefono_pro.errors }}
               </div>
 
               <!-- Domicilio Fiscal -->
               <div class="mb-3">
                 <label class="form-label small fw-semibold"><i class="bi bi-geo-alt me-1"></i> Domicilio Fiscal</label>
-                <input type="text" class="form-control" placeholder="Calle 123, Comuna">
+                {{ form.domicilio_fiscal_pro }}
+                {{ form.domicilio_fiscal_pro.errors }}
               </div>
 
               <!-- Correo -->
               <div class="mb-3">
                 <label class="form-label small fw-semibold"><i class="bi bi-envelope me-1"></i> Correo Electrónico</label>
-                <input type="email" class="form-control" placeholder="correo@empresa.cl">
+                {{ form.correo_pro }}
+                {{ form.correo_pro.errors }}
               </div>
 
               <!-- Dirección -->
               <div class="mb-3">
                 <label class="form-label small fw-semibold"><i class="bi bi-house me-1"></i> Dirección</label>
-                <input type="text" class="form-control" placeholder="Calle, Número, Ciudad">
+                {{ form.direccion_pro }}
+                {{ form.direccion_pro.errors }}
               </div>
 
             </div>

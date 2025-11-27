@@ -84,11 +84,15 @@ body{background:#f5f6fa;}
 .card {
   transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
+/* hover effect removed per user request */
 .card:hover {
-  transform: scale(1.05);
-  box-shadow: 0 10px 25px rgba(0,0,0,0.15);
-  z-index: 10;
+  transform: none;
+  box-shadow: none;
+  z-index: auto;
 }
+
+/* Remove hover highlighting on table rows (prevent background change on :hover) */
+.table tbody tr:hover { background: transparent !important; }
 
 /* RESPONSIVE */
 @media (max-width: 992px){
@@ -157,83 +161,156 @@ body{background:#f5f6fa;}
   <div class="d-flex align-items-center justify-content-between mb-3">
     <h3 class="mb-0">Reportes</h3>
 
-    <div class="d-flex align-items-center gap-3">
-      <!-- Botón + -->
-            <a class="btn btn-light rounded-circle shadow-sm d-flex align-items-center justify-content-center"
-            style="width:48px;height:48px;border:1px solid rgba(0,0,0,.08);"
-            data-bs-toggle="modal" data-bs-target="#modalNuevoPersonal"
-            aria-label="Generar reporte">
-            <i class="bi bi-plus-lg fs-5"></i>
-            </a>
+
+  </div>
 
 
+  <!-- Formulario para generar reportes -->
+  <div class="card shadow-sm p-4 rounded-3">
+    <form method="post" action="{% url 'generar_reporte' %}">
+      {% csrf_token %}
+      <div class="row g-3 align-items-end">
+        <div class="col-md-4">
+          <label class="form-label">Tipo de reporte</label>
+          <select name="tipo" class="form-select" required>
+            <option value="">Seleccione...</option>
+            <option value="salidas" {% if selected_tipo == 'salidas' or selected_tipo == 'salida' %}selected{% endif %}>Salidas</option>
+            <option value="entradas" {% if selected_tipo == 'entradas' or selected_tipo == 'entrada' %}selected{% endif %}>Entradas</option>
+            <option value="todo" {% if selected_tipo == 'todo' %}selected{% endif %}>Todo (entradas y salidas)</option>
+          </select>
+        </div>
+
+        <div class="col-md-3">
+          <label class="form-label">Fecha inicio</label>
+          <input type="date" name="fecha_inicio" class="form-control" required value="{{ fecha_inicio|default:'' }}">
+        </div>
+
+        <div class="col-md-3">
+          <label class="form-label">Fecha fin</label>
+          <input type="date" name="fecha_fin" class="form-control" required value="{{ fecha_fin|default:'' }}">
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-label">Categoría (opcional)</label>
+          <select name="categoria" class="form-select">
+            <option value="">Todas</option>
+            {% if categories %}
+              {% for cat in categories %}
+                <option value="{{ cat.id }}" {% if selected_categoria == cat.id %}selected{% endif %}>{{ cat.nombre }}</option>
+              {% endfor %}
+            {% endif %}
+          </select>
+        </div>
+
+        <div class="col-12 text-end mt-2">
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-download me-2"></i> Generar
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+    {% if report_rows %}
+    <div class="card shadow-sm p-3 rounded-3 mt-3">
+      <div class="d-flex gap-2 mb-3">
+        <button id="btnExportPdf" class="btn btn-outline-secondary btn-sm">Exportar PDF</button>
+      </div>
+      <div class="d-flex align-items-center justify-content-between mb-2">
+        <h5 class="mb-0">Resultados de reporte</h5>
+        <small class="text-muted">{{ report_rows|length }} fila(s)</small>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-sm table-striped align-middle">
+          <thead>
+            <tr>
+              <th>Categoria</th>
+              <th>Producto</th>
+              <th>Tipo</th>
+              <th>Quien lo entró</th>
+              <th>Precio venta</th>
+              <th>Precio compra</th>
+              <th>
+                {% if selected_tipo == 'entradas' or selected_tipo == 'entrada' %}
+                  Cantidad entrada
+                {% elif selected_tipo == 'salidas' or selected_tipo == 'salida' %}
+                  Cantidad salida
+                {% else %}
+                  Cantidad
+                {% endif %}
+              </th>
+              <th>Stock</th>
+              <th>Stock mínimo</th>
+              <th>Fecha y hora</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in report_rows %}
+              <tr>
+                <td>{{ r.categoria }}</td>
+                <td>{{ r.producto }}</td>
+                <td>{% if r.movimiento %}{{ r.movimiento }}{% endif %}</td>
+                <td>{{ r.quien }}</td>
+                <td>{% if r.precio_venta_fmt %}{{ r.precio_venta_fmt }}{% endif %}</td>
+                <td>{% if r.precio_compra_fmt %}{{ r.precio_compra_fmt }}{% endif %}</td>
+                <td>{{ r.cantidad }}</td>
+                <td>{{ r.stock }}</td>
+                <td>{{ r.stock_minimo }}</td>
+                <td>{{ r.fecha_hora }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </div>
-  </div>
+    {% endif %}
 
-  
-  <!-- Paginación -->
- 
-<!-- ====== /Personal ====== -->
+  <!-- footer scripts + modal -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    (function(){
+      function getCookie(name) {
+        var cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+          var cookies = document.cookie.split(';');
+          for (var i = 0; i < cookies.length; i++) {
+            var cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+              cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+              break;
+            }
+          }
+        }
+        return cookieValue;
+      }
 
-     
-<div class="table-responsive rounded-3 border" style="border-color:#e0e6ee;">
-  <table class="table align-middle mb-0">
-    <thead>
-      <tr class="text-muted">
-        <th class="ps-4">Archivo</th>
-        <th class="text-nowrap">Fecha</th>
-        <th class="text-end pe-4">Acciones</th>
-      </tr>
-    </thead>
+      var btn = document.getElementById('btnExportPdf');
+      if (!btn) return;
+      btn.addEventListener('click', function(){
+        // Clone the existing form inputs and submit to PDF endpoint in new tab
+        var form = document.querySelector('form[action="{% url "generar_reporte" %}"]');
+        if (!form) return alert('Formulario no encontrado');
 
-    <tbody class="table-group-divider">
-      {% if archivos %}
-        {% for a in archivos %}
-          <tr>
-            <td class="ps-4">
-              <i class="bi bi-file-earmark-excel me-2 text-success"></i>
-              {{ a.nombre }}
-            </td>
-
-            <td class="text-nowrap">
-              {{ a.fecha|date:"d/m/Y H:i" }}
-            </td>
-
-            <td class="text-end pe-4">
-              <a class="btn btn-sm btn-success"
-                 href="{{ a.url }}"
-                 download
-                 title="Descargar {{ a.nombre }}">
-                <i class="bi bi-download me-1"></i>Descargar
-              </a>
-            </td>
-          </tr>
-        {% endfor %}
-      {% else %}
-        <tr>
-          <td colspan="3" class="ps-4 text-muted">
-            No hay reportes generados aún.
-          </td>
-        </tr>
-      {% endif %}
-    </tbody>
-  </table>
-</div>
- <div class="d-flex justify-content-center align-items-center gap-2 mt-3">
-    <button type="button" class="btn btn-secondary border-0">
-      <i class="bi bi-grid-3x3-gap"></i>
-    </button>
-    <button type="button" class="btn btn-secondary border-0">
-      <i class="bi bi-chevron-left"></i>
-    </button>
-    <span class="mx-2 text-muted">1&nbsp; de&nbsp; 1</span>
-    <button type="button" class="btn btn-secondary border-0">
-      <i class="bi bi-chevron-right"></i>
-    </button>
-  </div>
-</section>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+        var fd = new FormData(form);
+        // build a temporary form
+        var temp = document.createElement('form');
+        temp.method = 'post';
+        temp.action = "{% url 'generar_reporte_pdf' %}";
+        temp.target = '_blank';
+        // CSRF
+        var csrf = getCookie('csrftoken');
+        if (csrf){
+          var inp = document.createElement('input'); inp.type='hidden'; inp.name='csrfmiddlewaretoken'; inp.value=csrf; temp.appendChild(inp);
+        }
+        // append other fields
+        fd.forEach(function(value, key){
+          var i = document.createElement('input'); i.type='hidden'; i.name=key; i.value=value; temp.appendChild(i);
+        });
+        document.body.appendChild(temp);
+        temp.submit();
+        setTimeout(function(){ document.body.removeChild(temp); }, 1000);
+      });
+    })();
+  </script>
 </body>
 
 <div class="modal fade" id="modalNuevoPersonal" tabindex="-1" aria-hidden="true">

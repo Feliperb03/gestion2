@@ -120,7 +120,7 @@ body{background:#f5f6fa;}
 
     <nav class="flex-grow-1 p-2">
       <div class="px-2 text-uppercase small mb-2" style="color:var(--sidebar-muted)">Menú</div>
-      <a class="nav-link" href="{% url 'main' %}"><i class="bi bi-speedometer2 me-2"></i>Dashboard</a>
+      <a class="nav-link" href="{% url 'main' %}"><i class="bi bi-speedometer2 me-2"></i>Panel de Control</a>
         <ul id="sidebarMenu" class="nav flex-column gap-1"> <!-- 👈 id para el acordeón -->
         <li class="nav-item">
             <a class="nav-link d-flex align-items-center" data-bs-toggle="collapse" href="#admMenu"
@@ -150,8 +150,8 @@ body{background:#f5f6fa;}
 
   <!-- MAIN -->
   <main class="main">
-    <h3>Dashboard</h3>
-    <p class="text-muted">Bienvenido al sistema punto de venta.</p>
+    <h3>Panel de control</h3>
+    <p class="text-muted">Bienvenido al sistema de gestor de inventario</p>
 
     <!-- Cards a la derecha -->
 <div class="row row-cols-1 row-cols-md-3 g-4">
@@ -207,12 +207,32 @@ body{background:#f5f6fa;}
     <img src="{% static 'imagenes/Reportes.png' %}" class="card-img-top" alt="Reportes">
     <div class="card-body">
       <h5 class="card-title">Reportes</h5>
-      <p class="card-text">Estadísticas de ventas, compras y existencias.</p>
+      <p class="card-text">Detalles y filtrado de historial de kardex</p>
       <a href="{% url 'reportes' %}" class="stretched-link" aria-label="Ir a Reportes"></a>
     </div>
   </div>
 </div>
 
+<div class="col d-flex align-items-stretch">
+  <div class="card h-100 w-100 position-relative">
+    <img src="{% static 'imagenes/venta.png' %}" class="card-img-top" alt="Reportes">
+    <div class="card-body">
+      <h5 class="card-title">Proveedores</h5>
+      <p class="card-text">Agrega y gestiona los proveedores y sus detalles</p>
+      <a href="{% url 'proveedores' %}" class="stretched-link" aria-label="Ir a Proveedores"></a>
+    </div>
+  </div>
+</div>
+<div class="col d-flex align-items-stretch">
+  <div class="card h-100 w-100 position-relative">
+    <img src="{% static 'imagenes/Dashboards.png' %}" class="card-img-top" alt="Reportes">
+    <div class="card-body">
+      <h5 class="card-title">Dashboard</h5>
+      <p class="card-text">Estadisticas de ventas, compras y existencias</p>
+      <a href="{% url 'dashboard' %}" class="stretched-link" aria-label="Ir a Dashboard"></a>
+    </div>
+  </div>
+</div>
 </div>
 
   </main>
